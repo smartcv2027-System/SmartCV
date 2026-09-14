@@ -1,28 +1,39 @@
+# SmartCV: Explainable AI (XAI) Backend API Service
+
+**King Khalid University — College of Computer Science**  
+*Graduation Project: Transparent Resume Screening & Job Matching*
+
+SmartCV Backend API service powered by **Python 3.11**, **FastAPI**, **SQLAlchemy 2.0**, and **Sentence-BERT (`all-MiniLM-L6-v2`)**.
+
 ---
-title: SmartCV Backend API
-emoji: 📄
-colorFrom: indigo
-colorTo: blue
-sdk: docker
-app_port: 7860
-pinned: false
+
+### Key API Endpoints
+- **Interactive Swagger Documentation**: `/docs`
+- **ReDoc API Explorer**: `/redoc`
+- **Service Health Check**: `/health`
+- **API Base Route**: `/api/v1`
+
 ---
 
-# SmartCV: Explainable AI (XAI) System for Resume Screening & Job Matching
+### Core Environment Variables
+Configure the following in your environment or hosting provider (Render / Supabase):
+- `DATABASE_URL`: Supabase PostgreSQL connection string (Session/Transaction Pooler recommended)
+- `SECRET_KEY`: Cryptographic signing key for JWT access tokens
+- `BACKEND_CORS_ORIGINS`: Allowed frontend domains (e.g. `https://your-app.vercel.app,*`)
+- `SEED_ON_STARTUP`: `true` (auto-creates tables and seeds 15 KKU candidate profiles and 6 tech jobs)
+- `WORKERS`: `1` (ensures memory usage stays strictly within ~360 MB)
 
-**King Khalid University — College of Computer Science**
+---
 
-SmartCV Backend API service powered by **FastAPI**, **SQLAlchemy 2.0**, and **Sentence-BERT (`all-MiniLM-L6-v2`)** for transparent candidate-job matching and explainable AI scoring.
+### Local Testing & Execution
+```bash
+# Activate virtual environment
+.\.venv\Scripts\activate  # Windows
+source .venv/bin/activate  # Linux / macOS
 
-### API Endpoints
-- **Swagger Documentation**: `/docs`
-- **ReDoc Documentation**: `/redoc`
-- **Health Check**: `/health`
-- **API Base**: `/api/v1`
+# Run test suite
+pytest -v
 
-### Environment Variables
-Configure the following in your Space **Settings -> Variables and secrets**:
-- `DATABASE_URL`: Supabase PostgreSQL connection string
-- `SECRET_KEY`: JWT secret token
-- `BACKEND_CORS_ORIGINS`: Allowed origins (e.g. `https://your-app.vercel.app,*`)
-- `SEED_ON_STARTUP`: `false` (or `true` on first launch to auto-seed KKU benchmark corpus)
+# Start FastAPI server
+uvicorn app.main:app --reload --port 8000
+```
