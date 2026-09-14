@@ -22,6 +22,6 @@ services:
       - key: BACKEND_CORS_ORIGINS
         value: "https://*.vercel.app,*"
       - key: SEED_ON_STARTUP
-        value: "false"
+        value: "true"
       - key: WORKERS
         value: "1"

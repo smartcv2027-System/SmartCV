@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 from typing import List, Optional, Union
