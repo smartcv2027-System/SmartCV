@@ -1,0 +1,55 @@
+# ==============================================================================
+# SmartCV — Git Ignore Configuration
+# ==============================================================================
+
+# Environment files & secrets (CRITICAL: Never commit credentials to GitHub)
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env.local
+.agents
+
+documents/
+DEPLOYMENT_GUIDE.md
+# Python virtual environment & interpreter artifacts
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local databases & logs
+*.sqlite3
+*.db
+*.db-journal
+backend/smartcv.db
+*.log
+scratch/
+tmp/
+
+# Uploaded documents (resumes & job postings)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Node & Next.js build artifacts
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+frontend/out/
+frontend/build/
+*.tsbuildinfo
+frontend/*.tsbuildinfo
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

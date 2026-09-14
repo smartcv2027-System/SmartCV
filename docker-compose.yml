@@ -1,0 +1,92 @@
+# ==============================================================================
+# SmartCV — Multi-Container Docker Compose Specification
+# King Khalid University — College of Computer Science
+# Capstone Project: Explainable AI System for Resume Screening & Job Matching
+# ==============================================================================
+
+services:
+  # ----------------------------------------------------------------------------
+  # Backend Service: FastAPI + Sentence-BERT NLP Matching Engine
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartcv-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - DATABASE_URL=sqlite:///./smartcv.db
+      - SECRET_KEY=smartcv-super-secret-jwt-key-2026-kku
+      - SEED_ON_STARTUP=true
+      - WORKERS=2
+    volumes:
+      # Persist SQLite database and uploaded resume files on host
+      - ./backend/smartcv.db:/app/smartcv.db
+      - ./backend/uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 35s
+    networks:
+      - smartcv-network
+
+  # ----------------------------------------------------------------------------
+  # Frontend Service: Next.js 14 Web Application
+  # ----------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    container_name: smartcv-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - smartcv-network
+
+  # ----------------------------------------------------------------------------
+  # Optional: PostgreSQL Database (Use profile: "with-postgres")
+  # Command: docker compose --profile with-postgres up --build
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: smartcv-postgres
+    profiles:
+      - with-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: smartcv_user
+      POSTGRES_PASSWORD: smartcv_password_2026
+      POSTGRES_DB: smartcv
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartcv_user -d smartcv"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smartcv-network
+
+networks:
+  smartcv-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local
