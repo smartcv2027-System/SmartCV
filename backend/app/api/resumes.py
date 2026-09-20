@@ -54,7 +54,14 @@ def get_resumes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Resume)
+    from sqlalchemy.orm import joinedload
+    query = (
+        db.query(Resume)
+        .options(
+            joinedload(Resume.candidate).joinedload(CandidateProfile.user),
+            joinedload(Resume.candidate_skills).joinedload(CandidateSkill.skill)
+        )
+    )
     
     # If applicant, only view own resumes
     if current_user.role_type == UserRole.APPLICANT:
@@ -74,7 +81,16 @@ def get_resume(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    resume = db.query(Resume).filter(Resume.resume_id == resume_id).first()
+    from sqlalchemy.orm import joinedload
+    resume = (
+        db.query(Resume)
+        .options(
+            joinedload(Resume.candidate).joinedload(CandidateProfile.user),
+            joinedload(Resume.candidate_skills).joinedload(CandidateSkill.skill)
+        )
+        .filter(Resume.resume_id == resume_id)
+        .first()
+    )
     if not resume:
         raise HTTPException(status_code=404, detail="Resume not found")
         

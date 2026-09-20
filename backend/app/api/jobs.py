@@ -62,7 +62,14 @@ def get_jobs(
     status_filter: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    query = db.query(Job)
+    from sqlalchemy.orm import joinedload
+    query = (
+        db.query(Job)
+        .options(
+            joinedload(Job.file),
+            joinedload(Job.job_skills).joinedload(JobSkill.skill)
+        )
+    )
     if status_filter:
         query = query.filter(Job.status == status_filter)
     jobs = query.order_by(Job.created_at.desc()).all()
@@ -70,7 +77,16 @@ def get_jobs(
 
 @router.get("/{job_id}", response_model=JobResponse)
 def get_job(job_id: int, db: Session = Depends(get_db)):
-    job = db.query(Job).filter(Job.job_id == job_id).first()
+    from sqlalchemy.orm import joinedload
+    job = (
+        db.query(Job)
+        .options(
+            joinedload(Job.file),
+            joinedload(Job.job_skills).joinedload(JobSkill.skill)
+        )
+        .filter(Job.job_id == job_id)
+        .first()
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     return _format_job_response(job)
@@ -107,8 +123,7 @@ def create_job(
                     description=f"Skill: {s_in.skill_name}"
                 )
                 db.add(skill)
-                db.commit()
-                db.refresh(skill)
+                db.flush()
 
             js = JobSkill(
                 job_id=job.job_id,
@@ -129,8 +144,7 @@ def create_job(
                     description=ext_s.get("description")
                 )
                 db.add(skill)
-                db.commit()
-                db.refresh(skill)
+                db.flush()
 
             js = JobSkill(
                 job_id=job.job_id,
@@ -139,6 +153,9 @@ def create_job(
                 weight=1.0
             )
             db.add(js)
+
+    db.commit()
+    db.refresh(job)
 
     db.commit()
     db.refresh(job)

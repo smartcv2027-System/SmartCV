@@ -30,6 +30,21 @@ def get_sbert_model():
             ) from e
     return _sbert_model
 
+_embedding_cache: Dict[str, np.ndarray] = {}
+
+def get_text_embedding(text: str) -> np.ndarray:
+    """
+    Computes or retrieves cached normalized Sentence-BERT embedding for a text string.
+    """
+    global _embedding_cache
+    model = get_sbert_model()
+    if text not in _embedding_cache:
+        emb = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
+        if len(_embedding_cache) > 1000:
+            _embedding_cache.clear()
+        _embedding_cache[text] = emb
+    return _embedding_cache[text]
+
 class SmartCVMatcher:
     def __init__(self, weight_sbert: float = None, weight_tfidf: float = None, weight_skills: float = None):
         self.weight_sbert = weight_sbert if weight_sbert is not None else settings.WEIGHT_SBERT
@@ -73,15 +88,13 @@ class SmartCVMatcher:
         if not clean_resume or not clean_job:
             return 0.0
             
-        model = get_sbert_model()
         try:
-            embeddings = model.encode(
-                [clean_resume, clean_job], 
-                convert_to_numpy=True, 
-                normalize_embeddings=True
-            )
-            sim = np.dot(embeddings[0], embeddings[1])
+            emb_resume = get_text_embedding(clean_resume)
+            emb_job = get_text_embedding(clean_job)
+            sim = float(np.dot(emb_resume, emb_job))
             return float(np.clip(sim, 0.0, 1.0))
+        except SBERTModelError:
+            raise
         except Exception as e:
             raise SBERTModelError(f"Sentence-BERT encoding failed: {e}") from e
 

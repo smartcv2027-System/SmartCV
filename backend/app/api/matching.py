@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import (
-    Job, Resume, MatchResult, MatchedSkill, MissingSkill, 
+    Job, JobSkill, Resume, CandidateProfile, MatchResult, MatchedSkill, MissingSkill, 
     ExplanationSummary, ApplicantFeedback, CandidateSkill, Skill,
     User, UserRole, AuditLog
 )
@@ -92,12 +92,21 @@ def run_job_matching(
     Executes two-layer semantic screening + XAI explanation generation
     for candidate resumes against the selected job post.
     """
-    job = db.query(Job).filter(Job.job_id == match_req.job_id).first()
+    from sqlalchemy.orm import joinedload
+    job = (
+        db.query(Job)
+        .options(joinedload(Job.job_skills).joinedload(JobSkill.skill))
+        .filter(Job.job_id == match_req.job_id)
+        .first()
+    )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    # Fetch candidate resumes
-    query = db.query(Resume)
+    # Fetch candidate resumes with skills
+    query = (
+        db.query(Resume)
+        .options(joinedload(Resume.candidate_skills).joinedload(CandidateSkill.skill))
+    )
     if match_req.resume_ids:
         query = query.filter(Resume.resume_id.in_(match_req.resume_ids))
     else:
@@ -107,12 +116,6 @@ def run_job_matching(
     resumes = query.all()
     if not resumes:
         raise HTTPException(status_code=400, detail="No resumes available for matching")
-
-    # Clear previous match results for this job via ORM to cascade delete explanation and feedback
-    old_results = db.query(MatchResult).filter(MatchResult.job_id == job.job_id).all()
-    for old_r in old_results:
-        db.delete(old_r)
-    db.commit()
 
     matcher = SmartCVMatcher(
         weight_sbert=match_req.weight_sbert,
@@ -124,8 +127,8 @@ def run_job_matching(
     job_skills_data = [
         {
             "skill_id": js.skill_id,
-            "skill_name": js.skill.skill_name,
-            "skill_type": js.skill.skill_type,
+            "skill_name": js.skill.skill_name if js.skill else "",
+            "skill_type": js.skill.skill_type if js.skill else "technical",
             "requirement_type": js.requirement_type,
             "weight": js.weight
         }
@@ -184,12 +187,16 @@ def run_job_matching(
     scored_candidates.sort(key=lambda x: x["match_out"]["compatibility_score"], reverse=True)
 
     # Clear previous match results for this job to maintain fresh rankings and 1-to-1 integrity
-    existing_results = db.query(MatchResult).filter(MatchResult.job_id == job.job_id).all()
-    for er in existing_results:
-        db.delete(er)
-    db.commit()
+    existing_result_ids = [r[0] for r in db.query(MatchResult.result_id).filter(MatchResult.job_id == job.job_id).all()]
+    if existing_result_ids:
+        db.query(MatchedSkill).filter(MatchedSkill.result_id.in_(existing_result_ids)).delete(synchronize_session=False)
+        db.query(MissingSkill).filter(MissingSkill.result_id.in_(existing_result_ids)).delete(synchronize_session=False)
+        db.query(ExplanationSummary).filter(ExplanationSummary.result_id.in_(existing_result_ids)).delete(synchronize_session=False)
+        db.query(ApplicantFeedback).filter(ApplicantFeedback.result_id.in_(existing_result_ids)).delete(synchronize_session=False)
+        db.query(MatchResult).filter(MatchResult.job_id == job.job_id).delete(synchronize_session=False)
+        db.flush()
 
-    saved_results = []
+    saved_records = []
     for rank_idx, item in enumerate(scored_candidates, 1):
         resume = item["resume"]
         mo = item["match_out"]
@@ -204,15 +211,11 @@ def run_job_matching(
             compatibility_score=mo["compatibility_score"],
             recommendation_status=mo["recommendation_status"]
         )
-        db.add(res_record)
-        db.commit()
-        db.refresh(res_record)
 
         # Add matched skills
         for ms in item["matched_s"]:
-            if ms["skill_id"]:
-                db.add(MatchedSkill(
-                    result_id=res_record.result_id,
+            if ms.get("skill_id"):
+                res_record.matched_skills.append(MatchedSkill(
                     skill_id=ms["skill_id"],
                     evidence_text=ms.get("evidence_text"),
                     contribution_score=ms.get("contribution_score", 1.0)
@@ -220,9 +223,8 @@ def run_job_matching(
 
         # Add missing skills
         for ms in item["missing_s"]:
-            if ms["skill_id"]:
-                db.add(MissingSkill(
-                    result_id=res_record.result_id,
+            if ms.get("skill_id"):
+                res_record.missing_skills.append(MissingSkill(
                     skill_id=ms["skill_id"],
                     requirement_type=ms.get("requirement_type", "required"),
                     improvement_note=ms.get("improvement_note")
@@ -230,27 +232,24 @@ def run_job_matching(
 
         # Add explanation summary
         expl = item["expl_sum"]
-        db.add(ExplanationSummary(
-            result_id=res_record.result_id,
+        res_record.explanation_summary = ExplanationSummary(
             explanation_text=expl["explanation_text"],
             score_reason=expl["score_reason"],
             matched_skill_summary=expl["matched_skill_summary"],
             missing_skill_summary=expl["missing_skill_summary"]
-        ))
+        )
 
         # Add applicant feedback
         fb = item["app_fb"]
-        db.add(ApplicantFeedback(
-            result_id=res_record.result_id,
+        res_record.applicant_feedback = ApplicantFeedback(
             candidate_id=resume.candidate_id,
             feedback_text=fb["feedback_text"],
             improvement_items=fb["improvement_items"],
             missing_skill_recommendations=fb["missing_skill_recommendations"]
-        ))
+        )
 
-        db.commit()
-        db.refresh(res_record)
-        saved_results.append(res_record)
+        db.add(res_record)
+        saved_records.append(res_record)
 
     # Log Audit
     log = AuditLog(
@@ -258,12 +257,26 @@ def run_job_matching(
         action_type="MATCHING_EXECUTED",
         entity_name="Job",
         entity_id=job.job_id,
-        description=f"Screened {len(resumes)} candidate resumes for Job #{job.job_id} '{job.job_title}'. Top candidate score: {saved_results[0].compatibility_score}%."
+        description=f"Screened {len(resumes)} candidate resumes for Job #{job.job_id} '{job.job_title}'. Top candidate score: {saved_records[0].compatibility_score if saved_records else 0}%."
     )
     db.add(log)
     db.commit()
 
-    detail_results = [_build_match_result_detail(r) for r in saved_results]
+    from sqlalchemy.orm import joinedload
+    fresh_results = (
+        db.query(MatchResult)
+        .options(
+            joinedload(MatchResult.candidate).joinedload(CandidateProfile.user),
+            joinedload(MatchResult.matched_skills).joinedload(MatchedSkill.skill),
+            joinedload(MatchResult.missing_skills).joinedload(MissingSkill.skill),
+            joinedload(MatchResult.explanation_summary),
+            joinedload(MatchResult.applicant_feedback),
+        )
+        .filter(MatchResult.job_id == job.job_id)
+        .order_by(MatchResult.rank_position.asc())
+        .all()
+    )
+    detail_results = [_build_match_result_detail(r) for r in fresh_results]
     return JobRankingSummary(
         job_id=job.job_id,
         job_title=job.job_title,
@@ -277,6 +290,17 @@ def run_job_matching(
         results=detail_results
     )
 
+def _match_query_options():
+    from sqlalchemy.orm import joinedload
+    return [
+        joinedload(MatchResult.job),
+        joinedload(MatchResult.candidate).joinedload(CandidateProfile.user),
+        joinedload(MatchResult.matched_skills).joinedload(MatchedSkill.skill),
+        joinedload(MatchResult.missing_skills).joinedload(MissingSkill.skill),
+        joinedload(MatchResult.explanation_summary),
+        joinedload(MatchResult.applicant_feedback),
+    ]
+
 @router.get("/job/{job_id}", response_model=JobRankingSummary)
 def get_job_ranking(
     job_id: int, 
@@ -289,6 +313,7 @@ def get_job_ranking(
         
     results = (
         db.query(MatchResult)
+        .options(*_match_query_options())
         .filter(MatchResult.job_id == job_id)
         .order_by(MatchResult.rank_position.asc())
         .all()
@@ -311,7 +336,12 @@ def get_match_result(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    res = db.query(MatchResult).filter(MatchResult.result_id == result_id).first()
+    res = (
+        db.query(MatchResult)
+        .options(*_match_query_options())
+        .filter(MatchResult.result_id == result_id)
+        .first()
+    )
     if not res:
         raise HTTPException(status_code=404, detail="Match result not found")
 
@@ -335,8 +365,10 @@ def get_my_candidate_results(
     cand_id = current_user.candidate_profile.candidate_id
     results = (
         db.query(MatchResult)
+        .options(*_match_query_options())
         .filter(MatchResult.candidate_id == cand_id)
         .order_by(MatchResult.created_at.desc())
         .all()
     )
     return [_build_match_result_detail(r) for r in results]
+
