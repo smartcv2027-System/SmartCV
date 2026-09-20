@@ -23,7 +23,7 @@
 
 ## 🛠 Tech Stack
 
-- **Frontend**: Next.js 14+ (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons.
+- **Frontend**: Next.js 16.3.5+ (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons.
 - **Backend**: Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic v2, Uvicorn.
 - **AI & NLP Engine**: `sentence-transformers` (`all-MiniLM-L6-v2`), `scikit-learn`, `nltk`, `pdfplumber`, `pypdf`, `python-docx`.
 - **Database**: Multi-dialect support for **SQLite** (local zero-config), **MySQL**, and **Supabase (PostgreSQL)**.
@@ -188,7 +188,7 @@ SmartCV is production-ready for zero-cost cloud hosting ($0.00 / month forever) 
 
 | Operational Tier | Platform | Free Resources | Role |
 |---|---|---|---|
-| **Frontend Web App** | **Vercel** | 100 GB Bandwidth, Global Edge CDN | Next.js 14 App Router |
+| **Frontend Web App** | **Vercel** | 100 GB Bandwidth, Global Edge CDN | Next.js 16.3.5 App Router |
 | **AI & Backend Service** | **Render.com** | 750 Instance Hours/Mo, 512 MB RAM | FastAPI + Sentence-BERT Engine |
 | **Cloud Relational DB** | **Supabase** | 500 MB PostgreSQL, Session Pooler | 15 Relational Tables & Audit Logs |
 | **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 45 tests & deploys on `git push` |
