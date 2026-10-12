@@ -24,12 +24,7 @@
 ---
 
 ## Tech Stack
-
-<<<<<<< HEAD
 - **Frontend**: Next.js 14+ (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons, Full Bilingual Arabic (`العربية`) & English i18n with dynamic RTL/LTR directionality.
-=======
-- **Frontend**: Next.js 16.3.5+ (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons.
->>>>>>> 3ade32413d1c6a9259b88ff78ca1f40ea0b82376
 - **Backend**: Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic v2, Uvicorn.
 - **AI & NLP Engine**: `sentence-transformers` (`all-MiniLM-L6-v2`), `scikit-learn`, `nltk`, `pdfplumber`, `pypdf`, `python-docx`.
 - **Database**: Multi-dialect support for **SQLite** (local zero-config default), **MySQL**, and **Supabase (PostgreSQL)**.
