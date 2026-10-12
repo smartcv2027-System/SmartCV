@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api, MatchResultDetail } from "@/lib/api";
 import { ScoreGauge } from "@/components/ScoreGauge";
+import { useLanguage, format } from "@/lib/i18n";
 import { 
   Lightbulb, 
   ArrowLeft, 
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 
 export default function ApplicantFeedbackPage() {
+  const { t } = useLanguage();
   const params = useParams();
   const resultId = Number(params?.resultId);
 
@@ -47,7 +49,7 @@ export default function ApplicantFeedbackPage() {
   if (loading) {
     return (
       <div className="text-center py-16 text-xs text-slate-500 font-bold">
-        Loading personalized feedback...
+        {t.feedback.loadingFeedback}
       </div>
     );
   }
@@ -55,8 +57,8 @@ export default function ApplicantFeedbackPage() {
   if (!result) {
     return (
       <div className="text-center py-16 space-y-3">
-        <p className="text-xs text-slate-500 font-bold">Feedback record not found.</p>
-        <Link href="/applicant" className="text-xs font-bold text-brand-600">Return to Portal</Link>
+        <p className="text-xs text-slate-500 font-bold">{t.feedback.notFound}</p>
+        <Link href="/applicant" className="text-xs font-bold text-brand-600">{t.feedback.returnToPortal}</Link>
       </div>
     );
   }
@@ -70,7 +72,7 @@ export default function ApplicantFeedbackPage() {
           href="/applicant"
           className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to My Applications
+          <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" /> {t.feedback.backBtn}
         </Link>
       </div>
 
@@ -79,11 +81,11 @@ export default function ApplicantFeedbackPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold">
-              <Sparkles className="w-3.5 h-3.5" /> Explainable AI Feedback Report
+              <Sparkles className="w-3.5 h-3.5" /> {t.feedback.reportTitle}
             </div>
-            <h1 className="text-2xl font-black">{result.candidate_name}</h1>
+            <h1 className="text-2xl font-black"><bdi>{result.candidate_name}</bdi></h1>
             <p className="text-xs text-emerald-100">
-              Evaluation for: <span className="font-bold text-white">{result.job_title}</span>
+              {t.feedback.evaluationFor} <span className="font-bold text-white">{result.job_title}</span>
             </p>
           </div>
           <ScoreGauge score={result.compatibility_score} size="lg" />
@@ -101,7 +103,7 @@ export default function ApplicantFeedbackPage() {
         <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center gap-2">
             <Lightbulb className="w-5 h-5 text-amber-500" />
-            <h2 className="text-base font-extrabold text-slate-900">High-Impact Improvement Areas</h2>
+            <h2 className="text-base font-extrabold text-slate-900">{t.feedback.highImpactTitle}</h2>
           </div>
 
           <div className="grid grid-cols-1 gap-3">
@@ -114,7 +116,7 @@ export default function ApplicantFeedbackPage() {
                     ? "bg-amber-100 text-amber-700 border border-amber-200"
                     : "bg-brand-100 text-brand-700 border border-brand-200"
                 }`}>
-                  {item.priority} Priority
+                  {format(t.feedback.priorityBadge, { priority: item.priority })}
                 </span>
                 <div>
                   <h4 className="text-xs font-bold text-slate-900">{item.category}</h4>
@@ -133,10 +135,10 @@ export default function ApplicantFeedbackPage() {
             <div className="flex items-center gap-2">
               <GraduationCap className="w-5 h-5 text-emerald-600" />
               <h2 className="text-base font-extrabold text-slate-900">
-                Tailored Skill Development Recommendations ({result.feedback.missing_skill_recommendations.length})
+                {format(t.feedback.tailoredRecsTitle, { count: result.feedback.missing_skill_recommendations.length })}
               </h2>
             </div>
-            <span className="text-xs text-slate-400 font-medium">To qualify for future openings</span>
+            <span className="text-xs text-slate-400 font-medium">{t.feedback.toQualifySubtitle}</span>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -152,15 +154,15 @@ export default function ApplicantFeedbackPage() {
                 <div className="space-y-2 text-xs">
                   <div className="flex items-start gap-2 text-slate-700">
                     <BookOpen className="w-3.5 h-3.5 text-brand-600 shrink-0 mt-0.5" />
-                    <span><strong className="text-slate-900">Recommended Course:</strong> {rec.recommended_course}</span>
+                    <span><strong className="text-slate-900">{t.feedback.recommendedCourse}</strong> {rec.recommended_course}</span>
                   </div>
                   <div className="flex items-start gap-2 text-slate-700">
                     <Code className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
-                    <span><strong className="text-slate-900">Suggested Project:</strong> {rec.suggested_project}</span>
+                    <span><strong className="text-slate-900">{t.feedback.suggestedProject}</strong> {rec.suggested_project}</span>
                   </div>
                   <div className="flex items-start gap-2 text-slate-700">
                     <Award className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
-                    <span><strong className="text-slate-900">Target Certification:</strong> {rec.certification}</span>
+                    <span><strong className="text-slate-900">{t.feedback.targetCert}</strong> {rec.certification}</span>
                   </div>
                 </div>
               </div>
@@ -173,7 +175,7 @@ export default function ApplicantFeedbackPage() {
       <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-3">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          Verified Strengths in This Evaluation ({result.matched_skills.length})
+          {format(t.feedback.verifiedStrengthsTitle, { count: result.matched_skills.length })}
         </h3>
         <div className="flex flex-wrap gap-2">
           {result.matched_skills.map((s, idx) => (

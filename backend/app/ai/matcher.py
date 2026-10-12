@@ -91,6 +91,7 @@ class SmartCVMatcher:
         try:
             emb_resume = get_text_embedding(clean_resume)
             emb_job = get_text_embedding(clean_job)
+            # For L2-normalized vectors (||u|| = ||v|| = 1), dot product is mathematically identical to Cosine Similarity
             sim = float(np.dot(emb_resume, emb_job))
             return float(np.clip(sim, 0.0, 1.0))
         except SBERTModelError:

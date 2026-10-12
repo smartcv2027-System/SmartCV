@@ -24,9 +24,11 @@ import {
   FileSpreadsheet
 } from "lucide-react";
 import { useConfirm } from "@/lib/confirm-context";
+import { useLanguage, format } from "@/lib/i18n";
 
 export default function ModelEvaluationPage() {
   const { showAlert } = useConfirm();
+  const { t } = useLanguage();
   const [report, setReport] = useState<ModelEvaluationReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -147,11 +149,11 @@ export default function ModelEvaluationPage() {
           href="/admin"
           className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Admin Panel
+          <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" /> {t.common.back}
         </Link>
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white shadow-xl border border-indigo-900/40 relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+          <div className="absolute end-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none -me-20 -mt-20"></div>
           
           <div className="space-y-2 relative z-10 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30">
@@ -172,7 +174,7 @@ export default function ModelEvaluationPage() {
               title="View & copy publication-ready text for Chapter 7"
             >
               <BookOpen className="w-4 h-4" />
-              Chapter 7 Report
+              {t.admin.chapter7Btn}
             </button>
 
             <button
@@ -182,7 +184,7 @@ export default function ModelEvaluationPage() {
               title="Download standardized benchmark dataset with ground-truth and scores"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-              {downloadingCsv ? "Downloading..." : "Dataset (CSV)"}
+              {downloadingCsv ? t.common.loading : t.admin.datasetCsvBtn}
             </button>
 
             <button
@@ -196,7 +198,7 @@ export default function ModelEvaluationPage() {
               title="Copy publication LaTeX tables for Thesis Section 7.4"
             >
               {copiedLatex ? <CheckCircle2 className="w-4 h-4 text-white" /> : <Code className="w-4 h-4 text-indigo-300" />}
-              {copiedLatex ? "LaTeX Copied!" : "LaTeX Tables"}
+              {copiedLatex ? t.admin.latexCopied : t.admin.latexTablesBtn}
             </button>
 
             <button
@@ -205,7 +207,7 @@ export default function ModelEvaluationPage() {
               className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-2 shadow-md transition-all shrink-0 cursor-pointer"
             >
               <RefreshCw className={`w-4 h-4 ${running ? "animate-spin" : ""}`} />
-              {running ? "Scoring..." : "Re-Run"}
+              {running ? t.admin.scoringProgress : t.admin.reRunBtn}
             </button>
           </div>
         </div>
@@ -213,20 +215,20 @@ export default function ModelEvaluationPage() {
 
       {/* Track Selection Filter */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
-        <span className="text-xs font-bold text-slate-500 flex items-center gap-1 shrink-0 pl-1">
-          <Sliders className="w-3.5 h-3.5 text-indigo-600" /> Filter Track:
+        <span className="text-xs font-bold text-slate-500 flex items-center gap-1 shrink-0 ps-1">
+          <Sliders className="w-3.5 h-3.5 text-indigo-600" /> {t.admin.filterTrack}
         </span>
-        {KKU_TRACKS.map((t) => (
+        {KKU_TRACKS.map((tTrack) => (
           <button
-            key={t.id}
-            onClick={() => setSelectedTrack(t.id)}
+            key={tTrack.id}
+            onClick={() => setSelectedTrack(tTrack.id)}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              selectedTrack === t.id
+              selectedTrack === tTrack.id
                 ? "bg-indigo-600 text-white shadow-sm shadow-indigo-200"
                 : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
             }`}
           >
-            {t.label}
+            {tTrack.label}
           </button>
         ))}
       </div>
@@ -240,18 +242,18 @@ export default function ModelEvaluationPage() {
             </span>
             <span className="text-slate-300">•</span>
             <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px]">
-              {report.total_samples} Total Candidate-Job Pairs
+              {format(t.admin.totalPairs, { count: report.total_samples })}
             </span>
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[11px] border border-emerald-200">
-              {report.relevant_samples} Target Profiles (Label: 1)
+              {format(t.admin.targetProfiles, { count: report.relevant_samples })}
             </span>
             <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
-              {report.negative_control_samples} Negative Controls (Label: 0)
+              {format(t.admin.negativeControls, { count: report.negative_control_samples })}
             </span>
           </div>
 
           <div className="text-slate-500 font-medium text-[11px]">
-            Academic Focus: <strong className="text-slate-800">Scoring Separation, Candidate Ranking & Semantic Resilience</strong>
+            {t.admin.academicFocus}
           </div>
         </div>
       )}
@@ -264,11 +266,11 @@ export default function ModelEvaluationPage() {
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-md bg-indigo-100 text-indigo-800 font-mono text-[10px] font-bold">Table 7.1</span>
                 <h2 className="text-base font-extrabold text-slate-900">
-                  Model Compatibility & Discrimination Separation Summary
+                  {t.admin.table71Title}
                 </h2>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                Direct evaluation of matching models on target relevant profiles versus negative controls.
+                {t.admin.table71Subtitle}
               </p>
             </div>
 
@@ -277,21 +279,21 @@ export default function ModelEvaluationPage() {
               className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
             >
               <Code className="w-3.5 h-3.5" />
-              {showLatexCode ? "Hide LaTeX Code" : "View Publication LaTeX"}
+              {showLatexCode ? t.admin.hideLatexCode : t.admin.viewPublicationLatex}
               {showLatexCode ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-start text-xs">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] tracking-wider font-extrabold">
-                  <th className="py-3 px-3">Model Architecture</th>
-                  <th className="py-3 px-3">Relevant Mean Score (μ_rel)</th>
-                  <th className="py-3 px-3">Negative Control Mean (μ_neg)</th>
-                  <th className="py-3 px-3">Discrimination Margin (Δ)</th>
-                  <th className="py-3 px-3">Inference Latency</th>
-                  <th className="py-3 px-3">Grounding / XAI Level</th>
+                  <th className="py-3 px-3 text-start">{t.admin.modelArchitectureCol}</th>
+                  <th className="py-3 px-3 text-start">{t.admin.relevantMeanCol}</th>
+                  <th className="py-3 px-3 text-start">{t.admin.negativeMeanCol}</th>
+                  <th className="py-3 px-3 text-start">{t.admin.discriminationMarginCol}</th>
+                  <th className="py-3 px-3 text-start">{t.admin.latencyCol}</th>
+                  <th className="py-3 px-3 text-start">{t.admin.groundingXaiCol}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">

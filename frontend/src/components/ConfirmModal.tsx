@@ -9,6 +9,7 @@ import {
   X, 
   Loader2 
 } from "lucide-react";
+import { useLanguage } from "@/lib/i18n";
 
 export interface ConfirmModalProps {
   isOpen: boolean;
@@ -26,13 +27,18 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   variant = "danger",
   isLoading = false,
   onConfirm,
   onCancel,
 }) => {
+  const { t } = useLanguage();
+
+  const finalConfirmText = confirmText || t.confirm.confirmBtn;
+  const finalCancelText = cancelText || t.confirm.cancelBtn;
+
   // Close on Escape key press
   useEffect(() => {
     if (!isOpen) return;
@@ -119,8 +125,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
-            aria-label="Close"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50 cursor-pointer"
+            aria-label={t.common.close}
           >
             <X className="w-4 h-4" />
           </button>
@@ -133,14 +139,14 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-2.5 pt-2">
-          {cancelText && (
+          {finalCancelText && (
             <button
               type="button"
               onClick={onCancel}
               disabled={isLoading}
               className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50"
             >
-              {cancelText}
+              {finalCancelText}
             </button>
           )}
 
@@ -151,7 +157,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-75 focus:outline-none focus:ring-2 focus:ring-offset-1 ${config.confirmBtn}`}
           >
             {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            <span>{confirmText}</span>
+            <span>{finalConfirmText}</span>
           </button>
         </div>
 

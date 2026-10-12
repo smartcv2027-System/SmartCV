@@ -3,6 +3,7 @@
 import React from "react";
 import { MatchResultDetail } from "@/lib/api";
 import { ScoreGauge } from "./ScoreGauge";
+import { useLanguage, getRecommendationStatusLabel, getSkillTypeLabel, getRequirementTypeLabel } from "@/lib/i18n";
 import { 
   X, 
   CheckCircle2, 
@@ -22,6 +23,8 @@ interface ExplanationModalProps {
 }
 
 export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onClose }) => {
+  const { t, format } = useLanguage();
+
   if (!result) return null;
 
   const handlePrint = () => {
@@ -29,7 +32,7 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200 print:p-0 print:static print:bg-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 print:p-0 print:static print:bg-white">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden print:max-w-none print:max-h-none print:shadow-none print:border-none print:w-full">
         
         {/* Printable Academic Header (Visible on print only) */}
@@ -37,18 +40,20 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl font-black text-slate-900 uppercase tracking-wide">
-                King Khalid University
+                {t.home.kkuProjectBanner}
               </h1>
               <p className="text-xs text-slate-600 font-semibold">
-                College of Computer Science • Department of Informatics & Computer Systems
+                {t.footer.collegeName}
               </p>
               <p className="text-sm font-bold text-indigo-700 mt-1">
-                SmartCV: Candidate Screening & Evaluation Dossier
+                {t.feedback.reportTitle}
               </p>
             </div>
-            <div className="text-right text-xs text-slate-500">
-              <p>Generated: {new Date().toLocaleDateString()}</p>
-              <p className="font-bold text-slate-800">Status: {result.recommendation_status}</p>
+            <div className="text-end text-xs text-slate-500">
+              <p>{t.admin.timestampHeader}: {new Date().toLocaleDateString()}</p>
+              <p className="font-bold text-slate-800">
+                {t.common.status}: {getRecommendationStatusLabel(result.recommendation_status, t)}
+              </p>
             </div>
           </div>
         </div>
@@ -61,26 +66,33 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-extrabold text-slate-900">{result.candidate_name}</h3>
-                <span className="text-xs text-slate-500 font-medium">• Rank #{result.rank_position || 1}</span>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  <bdi>{result.candidate_name}</bdi>
+                </h3>
+                <span className="text-xs text-slate-500 font-medium">
+                  &bull; {t.matching.rankHeader} #{result.rank_position || 1}
+                </span>
               </div>
-              <p className="text-xs text-slate-500">Evaluation for: <span className="font-semibold text-slate-700">{result.job_title}</span></p>
+              <p className="text-xs text-slate-500">
+                {t.feedback.jobHeader} <span className="font-semibold text-slate-700">{result.job_title}</span>
+              </p>
             </div>
           </div>
           
           <div className="flex items-center gap-3">
             <button
               onClick={handlePrint}
-              className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
-              title="Print or export candidate dossier as PDF"
+              className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+              title="Print Dossier"
             >
               <Printer className="w-4 h-4 text-slate-600" />
-              <span>Print Dossier</span>
+              <span>{t.common.activeLanguage === "العربية" ? "طباعة التقرير" : "Print Dossier"}</span>
             </button>
             <ScoreGauge score={result.compatibility_score} size="md" />
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+              className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+              aria-label={t.common.close}
             >
               <X className="w-5 h-5" />
             </button>
@@ -93,20 +105,22 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
           {/* Candidate Profile Details (Print view) */}
           <div className="hidden print:grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs">
             <div>
-              <p className="text-slate-500">Candidate Name:</p>
+              <p className="text-slate-500">{t.feedback.candidateHeader}</p>
               <p className="text-sm font-black text-slate-900">{result.candidate_name}</p>
             </div>
             <div>
-              <p className="text-slate-500">Target Position:</p>
+              <p className="text-slate-500">{t.feedback.jobHeader}</p>
               <p className="text-sm font-black text-slate-900">{result.job_title}</p>
             </div>
             <div>
-              <p className="text-slate-500">Overall Compatibility Score:</p>
-              <p className="text-lg font-black text-indigo-700">{result.compatibility_score}% ({result.recommendation_status})</p>
+              <p className="text-slate-500">{t.feedback.overallCompatibility}:</p>
+              <p className="text-lg font-black text-indigo-700">
+                {result.compatibility_score}% ({getRecommendationStatusLabel(result.recommendation_status, t)})
+              </p>
             </div>
             <div>
-              <p className="text-slate-500">Screening Pipeline:</p>
-              <p className="text-xs font-bold text-slate-800">Two-Layer Hybrid (SBERT 50% + TF-IDF 20% + Skills 30%)</p>
+              <p className="text-slate-500">{t.xai.scoreFormulaTitle}:</p>
+              <p className="text-xs font-bold text-slate-800" dir="ltr">{t.xai.scoreFormula}</p>
             </div>
           </div>
 
@@ -114,7 +128,7 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
           <div>
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5 print:text-slate-900">
               <Layers className="w-4 h-4 text-brand-600 print:hidden" />
-              Transparent Scoring Breakdown (Two-Layer Model)
+              {t.feedback.scoringBreakdownTitle}
             </h4>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:grid-cols-3">
@@ -122,15 +136,18 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
               <div className="p-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/60 to-white print:border-slate-300 print:bg-white">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-indigo-900 flex items-center gap-1 print:text-slate-900">
-                    <Brain className="w-3.5 h-3.5 text-indigo-600 print:hidden" /> Layer 2: Semantic (S-BERT)
+                    <Brain className="w-3.5 h-3.5 text-indigo-600 print:hidden" />
+                    {t.home.sbertTitle}
                   </span>
-                  <span className="text-sm font-extrabold text-indigo-600 print:text-slate-900">{result.bert_score}%</span>
+                  <span className="text-sm font-extrabold text-indigo-600 print:text-slate-900">
+                    <bdi dir="ltr">{result.bert_score}%</bdi>
+                  </span>
                 </div>
                 <div className="w-full bg-indigo-100 h-2 rounded-full overflow-hidden mb-2 print:hidden">
                   <div className="bg-indigo-600 h-full rounded-full" style={{ width: `${result.bert_score}%` }}></div>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Sentence-BERT contextual embedding alignment (Weight: 50%).
+                  {t.xai.semanticAnalysisDesc} ({format(t.feedback.weightFactor, { weight: 50 })})
                 </p>
               </div>
 
@@ -138,15 +155,18 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
               <div className="p-4 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50/60 to-white print:border-slate-300 print:bg-white">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-sky-900 flex items-center gap-1 print:text-slate-900">
-                    <FileText className="w-3.5 h-3.5 text-sky-600 print:hidden" /> Layer 1: Lexical (TF-IDF)
+                    <FileText className="w-3.5 h-3.5 text-sky-600 print:hidden" />
+                    {t.home.tfidfTitle}
                   </span>
-                  <span className="text-sm font-extrabold text-sky-600 print:text-slate-900">{result.tfidf_score}%</span>
+                  <span className="text-sm font-extrabold text-sky-600 print:text-slate-900">
+                    <bdi dir="ltr">{result.tfidf_score}%</bdi>
+                  </span>
                 </div>
                 <div className="w-full bg-sky-100 h-2 rounded-full overflow-hidden mb-2 print:hidden">
                   <div className="bg-sky-600 h-full rounded-full" style={{ width: `${result.tfidf_score}%` }}></div>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Keyword term-frequency cosine similarity (Weight: 20%).
+                  {t.xai.lexicalAnalysisDesc} ({format(t.feedback.weightFactor, { weight: 20 })})
                 </p>
               </div>
 
@@ -154,10 +174,13 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
               <div className="p-4 rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-white print:border-slate-300 print:bg-white">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-emerald-900 flex items-center gap-1 print:text-slate-900">
-                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 print:hidden" /> Skill Overlap
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-600 print:hidden" />
+                    {t.feedback.skillsComponent}
                   </span>
                   <span className="text-sm font-extrabold text-emerald-600 print:text-slate-900">
-                    {result.matched_skills.length} / {result.matched_skills.length + result.missing_skills.length}
+                    <bdi dir="ltr">
+                      {result.matched_skills.length} / {result.matched_skills.length + result.missing_skills.length}
+                    </bdi>
                   </span>
                 </div>
                 <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden mb-2 print:hidden">
@@ -169,7 +192,7 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
                   ></div>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Target job requirements explicitly verified (Weight: 30%).
+                  {t.xai.skillsCoverageDesc} ({format(t.feedback.weightFactor, { weight: 30 })})
                 </p>
               </div>
             </div>
@@ -180,7 +203,7 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
               <h5 className="text-xs font-bold text-slate-800 mb-1.5 flex items-center gap-1.5 print:text-slate-900">
                 <Info className="w-4 h-4 text-brand-600 print:hidden" />
-                Explainable AI Summary
+                {t.feedback.scoringBreakdownTitle}
               </h5>
               <p className="text-xs text-slate-700 leading-relaxed font-medium mb-2">
                 {result.explanation.explanation_text}
@@ -197,27 +220,29 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
           <div>
             <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-3 flex items-center gap-1.5 print:text-slate-900">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 print:hidden" />
-              Verified Matched Skills ({result.matched_skills.length})
+              {t.feedback.matchedSkillsTitle} ({result.matched_skills.length})
             </h4>
 
             {result.matched_skills.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">No specific skill matches detected.</p>
+              <p className="text-xs text-slate-400 italic">{t.resumes.noSkillsFound}</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {result.matched_skills.map((ms, idx) => (
                   <div key={idx} className="p-3 rounded-xl border border-emerald-100 bg-emerald-50/40 print:bg-white print:border-slate-300">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-emerald-900 bg-emerald-100/80 px-2 py-0.5 rounded-md print:bg-slate-100 print:text-slate-900">
-                        {ms.skill_name}
+                        <bdi>{ms.skill_name}</bdi>
                       </span>
                       <span className="text-[10px] text-emerald-600 font-semibold uppercase print:text-slate-600">
-                        {ms.skill_type} • +{ms.contribution_score} pt
+                        {getSkillTypeLabel(ms.skill_type, t)} &bull; +{ms.contribution_score} pt
                       </span>
                     </div>
                     {ms.evidence_text && (
                       <p className="text-[11px] text-slate-600 flex items-start gap-1">
                         <Quote className="w-3 h-3 text-emerald-500 shrink-0 mt-0.5 print:hidden" />
-                        <span className="italic line-clamp-2 print:line-clamp-none">"{ms.evidence_text}"</span>
+                        <span className="italic line-clamp-2 print:line-clamp-none">
+                          &ldquo;<bdi>{ms.evidence_text}</bdi>&rdquo;
+                        </span>
                       </p>
                     )}
                   </div>
@@ -230,23 +255,27 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
           <div>
             <h4 className="text-xs font-bold text-rose-700 uppercase tracking-wider mb-3 flex items-center gap-1.5 print:text-slate-900">
               <AlertCircle className="w-4 h-4 text-rose-600 print:hidden" />
-              Skill Gaps / Missing Requirements ({result.missing_skills.length})
+              {t.feedback.missingSkillsTitle} ({result.missing_skills.length})
             </h4>
 
             {result.missing_skills.length === 0 ? (
-              <p className="text-xs text-emerald-600 font-medium">All requested job skills are present in the candidate profile!</p>
+              <p className="text-xs text-emerald-600 font-medium">
+                {t.common.activeLanguage === "العربية"
+                  ? "جميع المهارات المطلوبة في الوظيفة متوفرة ومثبتة في ملف المرشح!"
+                  : "All requested job skills are present in the candidate profile!"}
+              </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {result.missing_skills.map((ms, idx) => (
                   <div key={idx} className="p-3 rounded-xl border border-rose-100 bg-rose-50/40 print:bg-white print:border-slate-300">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-rose-900 bg-rose-100/80 px-2 py-0.5 rounded-md print:bg-slate-100 print:text-slate-900">
-                        {ms.skill_name}
+                        <bdi>{ms.skill_name}</bdi>
                       </span>
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.2 rounded ${
+                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
                         ms.requirement_type === "required" ? "bg-rose-200 text-rose-800" : "bg-amber-100 text-amber-800"
                       }`}>
-                        {ms.requirement_type}
+                        {getRequirementTypeLabel(ms.requirement_type, t)}
                       </span>
                     </div>
                     {ms.improvement_note && (
@@ -262,9 +291,9 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
 
           {/* Transparency & Audit Compliance Note */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-[11px] text-slate-500 space-y-1">
-            <p className="font-bold text-slate-700">Algorithmic Transparency & Fairness Statement:</p>
+            <p className="font-bold text-slate-700">{t.feedback.auditNotice}</p>
             <p>
-              SmartCV employs unsupervised Information Extraction (NLP) and Sentence-BERT semantic representation. No demographic attributes (gender, age, nationality) are utilized in ranking computation. All ratings are derived strictly from verifiable skill overlap and dense semantic context matching against job requirements.
+              {t.home.sbertDesc} {t.home.tfidfDesc}
             </p>
           </div>
 
@@ -274,17 +303,17 @@ export const ExplanationModal: React.FC<ExplanationModalProps> = ({ result, onCl
         <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100 bg-slate-50/80 print:hidden">
           <button
             onClick={handlePrint}
-            className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1.5"
+            className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-bold shadow-2xs transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-600" />
-            <span>Print / Save Dossier PDF</span>
+            <span>{t.common.activeLanguage === "العربية" ? "طباعة التقرير (PDF)" : "Print / Save Dossier PDF"}</span>
           </button>
           
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+            className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-2xs transition-all cursor-pointer"
           >
-            Close Explanation
+            {t.common.close}
           </button>
         </div>
 

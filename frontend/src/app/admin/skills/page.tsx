@@ -14,9 +14,12 @@ import {
   X 
 } from "lucide-react";
 import { useConfirm } from "@/lib/confirm-context";
+import { useLanguage, format } from "@/lib/i18n";
+import { getSkillTypeLabel } from "@/lib/i18n/glossary";
 
 export default function SkillsTaxonomyPage() {
   const { confirm, showAlert } = useConfirm();
+  const { t, language } = useLanguage();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [filterType, setFilterType] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -61,8 +64,8 @@ export default function SkillsTaxonomyPage() {
       loadSkills();
     } catch (err: any) {
       await showAlert({
-        title: "Failed to Add Skill",
-        message: err.message || "Failed to add skill to the taxonomy",
+        title: t.common.error,
+        message: err.message || t.common.unexpectedError,
         variant: "danger",
       });
     } finally {
@@ -75,10 +78,10 @@ export default function SkillsTaxonomyPage() {
     const skillName = targetSkill ? `"${targetSkill.skill_name}"` : "this skill";
 
     const ok = await confirm({
-      title: "Delete Taxonomy Skill",
-      message: `Are you sure you want to delete ${skillName} from the verified taxonomy? Candidate profile mappings with this skill may be affected.`,
-      confirmText: "Delete Skill",
-      cancelText: "Cancel",
+      title: t.admin.deleteSkillConfirmTitle,
+      message: format(t.admin.deleteSkillConfirmMsg, { name: skillName }),
+      confirmText: t.admin.deleteSkillBtn,
+      cancelText: t.common.cancel,
       variant: "danger",
     });
     if (!ok) return;
@@ -88,8 +91,8 @@ export default function SkillsTaxonomyPage() {
       loadSkills();
     } catch (err: any) {
       await showAlert({
-        title: "Delete Failed",
-        message: err.message || "Failed to delete skill from taxonomy",
+        title: t.common.error,
+        message: err.message || t.common.unexpectedError,
         variant: "danger",
       });
     }
@@ -110,14 +113,14 @@ export default function SkillsTaxonomyPage() {
           href="/admin"
           className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors"
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Admin Panel
+          <ArrowLeft className="w-3.5 h-3.5 rtl:rotate-180" /> {t.common.back}
         </Link>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-slate-900">Skills Taxonomy Governance</h1>
+            <h1 className="text-2xl font-black text-slate-900">{t.admin.taxonomyTitle}</h1>
             <p className="text-xs text-slate-500">
-              Master repository of 100+ recognized technical, soft, tool, and domain competencies.
+              {t.admin.taxonomySubtitle}
             </p>
           </div>
 
@@ -125,7 +128,7 @@ export default function SkillsTaxonomyPage() {
             onClick={() => setIsAddOpen(true)}
             className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all"
           >
-            <Plus className="w-4 h-4" /> Add New Skill
+            <Plus className="w-4 h-4" /> {t.admin.addNewSkill}
           </button>
         </div>
       </div>
@@ -133,13 +136,13 @@ export default function SkillsTaxonomyPage() {
       {/* Filter & Search */}
       <div className="p-4 rounded-2xl glass-card border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-4">
         <div className="relative flex-1 w-full">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search taxonomy by skill name or description..."
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
+            placeholder={t.admin.searchTaxonomyPlaceholder}
+            className="w-full ps-9 pe-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
           />
         </div>
 
@@ -149,11 +152,11 @@ export default function SkillsTaxonomyPage() {
             onChange={(e) => setFilterType(e.target.value)}
             className="p-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-purple-500 bg-white font-medium"
           >
-            <option value="">All Categories</option>
-            <option value="technical">Technical</option>
-            <option value="soft">Soft Skill</option>
-            <option value="tool">Tools & DevOps</option>
-            <option value="domain">Domain Knowledge</option>
+            <option value="">{t.admin.allCategories}</option>
+            <option value="technical">{t.admin.technicalCat}</option>
+            <option value="soft">{t.admin.softCat}</option>
+            <option value="tool">{t.admin.toolCat}</option>
+            <option value="domain">{t.admin.domainCat}</option>
           </select>
         </div>
       </div>
@@ -162,7 +165,7 @@ export default function SkillsTaxonomyPage() {
       <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-extrabold text-slate-900">
-            Registered Skills ({filteredSkills.length})
+            {t.admin.skillsTab} ({filteredSkills.length})
           </h2>
         </div>
 
@@ -184,7 +187,7 @@ export default function SkillsTaxonomyPage() {
                       ? "bg-amber-50 text-amber-700"
                       : "bg-purple-50 text-purple-700"
                   }`}>
-                    {skill.skill_type}
+                    {getSkillTypeLabel(skill.skill_type, language)}
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-500 line-clamp-2">{skill.description || "Active taxonomy skill"}</p>
@@ -211,7 +214,7 @@ export default function SkillsTaxonomyPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-extrabold text-slate-900">Add Skill to Taxonomy</h3>
+              <h3 className="text-base font-extrabold text-slate-900">{t.admin.addNewSkill}</h3>
               <button onClick={() => setIsAddOpen(false)} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
@@ -219,7 +222,7 @@ export default function SkillsTaxonomyPage() {
 
             <form onSubmit={handleAddSkill} className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Skill Name</label>
+                <label className="block font-bold text-slate-700 mb-1">{t.admin.skillNameHeader}</label>
                 <input
                   type="text"
                   value={newSkillName}
@@ -231,21 +234,21 @@ export default function SkillsTaxonomyPage() {
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Category</label>
+                <label className="block font-bold text-slate-700 mb-1">{t.admin.categoryHeader}</label>
                 <select
                   value={newSkillType}
                   onChange={(e) => setNewSkillType(e.target.value)}
                   className="w-full p-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
                 >
-                  <option value="technical">Technical</option>
-                  <option value="soft">Soft</option>
-                  <option value="tool">Tool</option>
-                  <option value="domain">Domain</option>
+                  <option value="technical">{t.admin.technicalCat}</option>
+                  <option value="soft">{t.admin.softCat}</option>
+                  <option value="tool">{t.admin.toolCat}</option>
+                  <option value="domain">{t.admin.domainCat}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block font-bold text-slate-700 mb-1">Description</label>
+                <label className="block font-bold text-slate-700 mb-1">{t.admin.detailsHeader}</label>
                 <input
                   type="text"
                   value={newSkillDesc}
@@ -261,14 +264,14 @@ export default function SkillsTaxonomyPage() {
                   onClick={() => setIsAddOpen(false)}
                   className="px-4 py-2 rounded-xl text-slate-600 font-bold"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold"
                 >
-                  {submitting ? "Adding..." : "Add Skill"}
+                  {submitting ? t.common.loading : t.admin.addNewSkill}
                 </button>
               </div>
             </form>

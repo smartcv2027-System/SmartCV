@@ -12,12 +12,14 @@ import {
   Brain, 
   ArrowRight, 
   Activity,
-  CheckCircle2,
-  Clock,
-  Layers
+  CheckCircle2, 
+  Clock, 
+  Layers 
 } from "lucide-react";
+import { useLanguage, format } from "@/lib/i18n";
 
 export default function AdminDashboardPage() {
+  const { t } = useLanguage();
   const [stats, setStats] = useState<any>(null);
   const [recentLogs, setRecentLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,11 +49,11 @@ export default function AdminDashboardPage() {
       <div className="p-6 rounded-2xl bg-gradient-to-r from-purple-950 via-indigo-950 to-slate-900 text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[11px] font-bold">
-            <ShieldCheck className="w-3.5 h-3.5" /> Technical Administration & Governance
+            <ShieldCheck className="w-3.5 h-3.5" /> {t.admin.governanceBadge}
           </div>
-          <h1 className="text-2xl font-black">Admin Review Panel (Laila)</h1>
+          <h1 className="text-2xl font-black">{t.admin.reviewPanelTitle}</h1>
           <p className="text-xs text-purple-200">
-            System health monitoring, audit log traceability, skills taxonomy governance, and ML benchmarks.
+            {t.admin.reviewPanelSubtitle}
           </p>
         </div>
 
@@ -60,7 +62,7 @@ export default function AdminDashboardPage() {
             href="/admin/evaluation"
             className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md transition-all"
           >
-            <Brain className="w-4 h-4" /> Run ML Benchmark
+            <Brain className="w-4 h-4" /> {t.admin.runMlBenchmarkBtn}
           </Link>
         </div>
       </div>
@@ -68,27 +70,27 @@ export default function AdminDashboardPage() {
       {/* Stats KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Users</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.admin.totalUsers}</p>
           <h3 className="text-2xl font-black text-slate-900">{stats?.total_users || 0}</h3>
-          <p className="text-[10px] text-slate-500">{stats?.recruiters || 0} Recruiters, {stats?.applicants || 0} Candidates</p>
+          <p className="text-[10px] text-slate-500">{format(t.admin.userSubtext, { recruiters: stats?.recruiters || 0, applicants: stats?.applicants || 0 })}</p>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Job Openings</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.admin.jobOpenings}</p>
           <h3 className="text-2xl font-black text-slate-900">{stats?.total_jobs || 0}</h3>
-          <p className="text-[10px] text-indigo-600 font-medium">Active screening targets</p>
+          <p className="text-[10px] text-indigo-600 font-medium">{t.admin.activeTargets}</p>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Screened Resumes</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.admin.screenedResumes}</p>
           <h3 className="text-2xl font-black text-slate-900">{stats?.total_resumes || 0}</h3>
-          <p className="text-[10px] text-emerald-600 font-medium">{stats?.total_matches || 0} total evaluations</p>
+          <p className="text-[10px] text-emerald-600 font-medium">{format(t.admin.evaluationsSubtext, { count: stats?.total_matches || 0 })}</p>
         </div>
 
         <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-1">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Skills Taxonomy</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.admin.skillsTaxonomyCard}</p>
           <h3 className="text-2xl font-black text-slate-900">{stats?.total_skills || 0}</h3>
-          <p className="text-[10px] text-purple-600 font-medium">Active competencies</p>
+          <p className="text-[10px] text-purple-600 font-medium">{t.admin.activeCompetencies}</p>
         </div>
       </div>
 
@@ -102,13 +104,13 @@ export default function AdminDashboardPage() {
             <Activity className="w-5 h-5 text-brand-600" />
           </div>
           <h3 className="text-base font-extrabold text-slate-900 group-hover:text-brand-600 transition-colors">
-            Audit Log Explorer
+            {t.admin.auditExplorerTitle}
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Inspect all system operations, resume uploads, candidate rankings, and access events for traceability.
+            {t.admin.auditExplorerDesc}
           </p>
           <span className="text-xs font-bold text-brand-600 inline-flex items-center gap-1">
-            View Audit Trail <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            {t.admin.viewAuditTrail} <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
           </span>
         </Link>
 
@@ -120,13 +122,13 @@ export default function AdminDashboardPage() {
             <Sparkles className="w-5 h-5" />
           </div>
           <h3 className="text-base font-extrabold text-slate-900 group-hover:text-purple-600 transition-colors">
-            Skills Taxonomy Manager
+            {t.admin.skillsManagerTitle}
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Add, update, or categorize skills across Technical, Soft, Tool, and Domain categories.
+            {t.admin.skillsManagerDesc}
           </p>
           <span className="text-xs font-bold text-purple-600 inline-flex items-center gap-1">
-            Manage Skills <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            {t.admin.manageSkills} <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
           </span>
         </Link>
 
@@ -138,13 +140,13 @@ export default function AdminDashboardPage() {
             <Brain className="w-5 h-5" />
           </div>
           <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
-            Model Evaluation & Benchmarks
+            {t.admin.modelEvalTitle}
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Compare TF-IDF baseline vs Sentence-BERT semantic model vs SmartCV Hybrid accuracy and confusion matrices.
+            {t.admin.modelEvalDesc}
           </p>
           <span className="text-xs font-bold text-indigo-600 inline-flex items-center gap-1">
-            Run Benchmark <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+            {t.admin.runBenchmark} <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
           </span>
         </Link>
       </div>
@@ -153,11 +155,11 @@ export default function AdminDashboardPage() {
       <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-extrabold text-slate-900">Recent System Audit Events</h2>
-            <p className="text-xs text-slate-500">Live operational events logged in PostgreSQL.</p>
+            <h2 className="text-base font-extrabold text-slate-900">{t.admin.recentAuditEvents}</h2>
+            <p className="text-xs text-slate-500">{t.admin.livePostgresLogs}</p>
           </div>
           <Link href="/admin/audit-logs" className="text-xs font-bold text-purple-600 hover:text-purple-800">
-            All Logs →
+            {t.admin.allLogsLink}
           </Link>
         </div>
 
@@ -174,7 +176,7 @@ export default function AdminDashboardPage() {
                   <p className="text-xs text-slate-600 mt-0.5">{log.description}</p>
                 </div>
               </div>
-              <span className="text-[10px] text-slate-400 whitespace-nowrap font-mono">
+              <span className="text-[10px] text-slate-400 whitespace-nowrap font-mono" dir="ltr">
                 {new Date(log.created_at).toLocaleTimeString()}
               </span>
             </div>

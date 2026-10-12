@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { api, Resume } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n";
 import {
   Users,
   FileText,
   Sparkles,
   User,
-  Clock,
   Eye,
   X,
   Search,
@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 export default function CandidatePoolPage() {
+  const { t, format } = useLanguage();
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -58,14 +59,16 @@ export default function CandidatePoolPage() {
       setActionMessage(null);
       const res = await api.reparseAllResumes();
       setActionMessage({
-        text: `Successfully re-extracted skills across ${res.updated_count} candidate resumes!`,
+        text: t.common.activeLanguage === "العربية"
+          ? `تمت إعادة استخراج المهارات بنجاح لـ ${res.updated_count} سيرة ذاتية!`
+          : `Successfully re-extracted skills across ${res.updated_count} candidate resumes!`,
         type: "success",
       });
       await loadResumes();
     } catch (err: any) {
       console.error("Failed to reparse all resumes:", err);
       setActionMessage({
-        text: err.message || "Failed to re-extract skills across candidate resumes.",
+        text: err.message || (t.common.activeLanguage === "العربية" ? "فشلت إعادة استخراج المهارات." : "Failed to re-extract skills."),
         type: "error",
       });
     } finally {
@@ -79,7 +82,9 @@ export default function CandidatePoolPage() {
       setActionMessage(null);
       const updated = await api.reparseResume(resumeId);
       setActionMessage({
-        text: `Re-extracted ${updated.skills?.length || 0} skills for candidate "${updated.candidate_name || '#' + updated.candidate_id}"!`,
+        text: t.common.activeLanguage === "العربية"
+          ? `تم استخراج ${updated.skills?.length || 0} مهارة للمرشح "${updated.candidate_name || '#' + updated.candidate_id}"!`
+          : `Re-extracted ${updated.skills?.length || 0} skills for candidate "${updated.candidate_name || '#' + updated.candidate_id}"!`,
         type: "success",
       });
       await loadResumes();
@@ -155,10 +160,10 @@ export default function CandidatePoolPage() {
         <div>
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2.5">
             <Users className="w-7 h-7 text-brand-600" />
-            Candidate Talent Pool
+            <span>{t.resumes.pageTitle}</span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Browse and review candidate profiles and resumes submitted via the Applicant Portal with automatic NLP skill extraction.
+            {t.resumes.pageSubtitle}
           </p>
         </div>
 
@@ -166,18 +171,18 @@ export default function CandidatePoolPage() {
           <button
             onClick={handleReparseAll}
             disabled={reparsingAll}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-sm transition-all disabled:opacity-60"
+            className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold shadow-2xs transition-all disabled:opacity-60 cursor-pointer"
             title="Re-run structural verification & hybrid NLP skill extraction across all candidate resumes"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${reparsingAll ? "animate-spin text-brand-600" : "text-slate-500"}`} />
-            <span>{reparsingAll ? "Extracting..." : "Re-extract All Skills"}</span>
+            <span>{reparsingAll ? t.common.loading : (t.common.activeLanguage === "العربية" ? "إعادة استخراج كافة المهارات" : "Re-extract All Skills")}</span>
           </button>
           <Link
             href="/recruiter"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition-all"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition-all cursor-pointer"
           >
             <Briefcase className="w-4 h-4" />
-            <span>Screen Against Jobs</span>
+            <span>{t.recruiter.runMatchingBtn}</span>
           </Link>
         </div>
       </div>
@@ -196,7 +201,7 @@ export default function CandidatePoolPage() {
             )}
             <span>{actionMessage.text}</span>
           </div>
-          <button onClick={() => setActionMessage(null)} className="text-slate-400 hover:text-slate-700 text-base font-bold ml-3">
+          <button onClick={() => setActionMessage(null)} className="text-slate-400 hover:text-slate-700 text-base font-bold ms-3 cursor-pointer">
             &times;
           </button>
         </div>
@@ -209,27 +214,29 @@ export default function CandidatePoolPage() {
         </div>
         <div className="text-xs text-blue-900 space-y-1">
           <p className="font-bold">
-            Candidate Self-Submission Model
+            {t.common.activeLanguage === "العربية" ? "نموذج التقديم الذاتي للمرشحين" : "Candidate Self-Submission Model"}
           </p>
           <p className="text-blue-700 leading-relaxed">
-            Per system access rules, resumes are uploaded directly by applicants through their student/applicant portal. Recruiters have read-only access to browse profiles, inspect parsed NLP tokens and extracted skills, and run XAI screening algorithms.
+            {t.common.activeLanguage === "العربية"
+              ? "وفق قواعد الوصول للنظام، تُرفع السير الذاتية مباشرة من قِبل المتقدمين عبر بوابتهم الخاصة. يملك مسؤولو التوظيف صلاحية استعراض الملفات، فحص مهارات NLP المستخرجة، وتشغيل خوارزميات الفرز التفسيرية."
+              : "Per system access rules, resumes are uploaded directly by applicants through their student/applicant portal. Recruiters have read-only access to browse profiles, inspect parsed NLP tokens and extracted skills, and run XAI screening algorithms."}
           </p>
         </div>
       </div>
 
       {/* Quick Metrics Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center font-black">
             <Users className="w-6 h-6" />
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900">{resumes.length}</div>
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Candidates</div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t.recruiter.totalResumesParsed}</div>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">
             <CheckCircle2 className="w-6 h-6" />
           </div>
@@ -237,37 +244,40 @@ export default function CandidatePoolPage() {
             <div className="text-2xl font-black text-slate-900">
               {resumes.filter(r => r.parsed_status?.toLowerCase() === "parsed").length}
             </div>
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">NLP Parsed Resumes</div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              {t.common.activeLanguage === "العربية" ? "السير الذاتية المحللة" : "NLP Parsed Resumes"}
+            </div>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-sm flex items-center gap-4">
+        <div className="p-5 rounded-2xl glass-card border border-slate-200 shadow-xs flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black">
             <Sparkles className="w-6 h-6" />
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900">{totalSkillsCount}</div>
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Extracted Skills Mapped</div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{t.admin.totalSkillsInTaxonomy}</div>
           </div>
         </div>
       </div>
 
       {/* Candidate Search & Filter Toolbar */}
-      <div className="p-4 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-3">
+      <div className="p-4 rounded-2xl glass-card border border-slate-200 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search candidate name, resume title, or skill (e.g. Python, Docker)..."
-              className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+              placeholder={t.resumes.candidateSearchPlaceholder}
+              className="w-full ps-10 pe-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                aria-label={t.common.close}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -277,9 +287,9 @@ export default function CandidatePoolPage() {
           {selectedSkillFilter && (
             <button
               onClick={() => setSelectedSkillFilter(null)}
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all"
+              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <span>Filtered: <strong className="text-brand-700">{selectedSkillFilter}</strong></span>
+              <span>{t.common.filter}: <strong className="text-brand-700">{selectedSkillFilter}</strong></span>
               <X className="w-3 h-3" />
             </button>
           )}
@@ -288,19 +298,20 @@ export default function CandidatePoolPage() {
         {/* Top Skill Filter Pills */}
         {allSkills.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap pt-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mr-1">
-              <Filter className="w-3 h-3" /> Quick Filter:
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 me-1">
+              <Filter className="w-3 h-3" /> {t.common.filter}:
             </span>
             {allSkills.map((skill) => (
               <button
                 key={skill}
                 onClick={() => setSelectedSkillFilter(selectedSkillFilter === skill ? null : skill)}
-                className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition-all ${selectedSkillFilter === skill
-                    ? "bg-brand-600 text-white shadow-sm"
+                className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition-all cursor-pointer ${
+                  selectedSkillFilter === skill
+                    ? "bg-brand-600 text-white shadow-xs"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
+                }`}
               >
-                {skill}
+                <bdi>{skill}</bdi>
               </button>
             ))}
           </div>
@@ -308,35 +319,39 @@ export default function CandidatePoolPage() {
       </div>
 
       {/* Candidate Pool Table */}
-      <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-4">
+      <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-xs space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-extrabold text-slate-900">
-            Candidate Profiles ({filteredResumes.length})
+            {t.resumes.parsedCandidatesTitle} ({filteredResumes.length})
           </h2>
-          <span className="text-xs text-slate-400 font-medium">Automatic NLP tokenization & skill taxonomy matching</span>
+          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+            {t.common.activeLanguage === "العربية" ? "معالجة آلية وتطابق مع شجرة المهارات القياسية" : "Automatic NLP tokenization & skill taxonomy matching"}
+          </span>
         </div>
 
         {loading ? (
           <div className="py-12 text-center text-slate-400 text-xs">
-            Loading candidate pool...
+            {t.common.loading}
           </div>
         ) : filteredResumes.length === 0 ? (
           <div className="py-12 text-center space-y-2">
             <Users className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-xs font-bold text-slate-600">No candidates found matching your criteria</p>
-            <p className="text-[11px] text-slate-400">Try clearing filters or search terms.</p>
+            <p className="text-xs font-bold text-slate-600">{t.common.noData}</p>
+            <p className="text-[11px] text-slate-400">
+              {t.common.activeLanguage === "العربية" ? "جرب مسح فلاتر البحث." : "Try clearing filters or search terms."}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-start text-xs">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] tracking-wider">
-                  <th className="py-3 px-3">Candidate</th>
-                  <th className="py-3 px-3">Resume Document</th>
-                  <th className="py-3 px-3">Status</th>
-                  <th className="py-3 px-3">Extracted Skills</th>
-                  <th className="py-3 px-3">Submission Date</th>
-                  <th className="py-3 px-3 text-right">Actions</th>
+                <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] tracking-wider text-start">
+                  <th className="py-3 px-3 text-start">{t.recruiter.candidateNameHeader}</th>
+                  <th className="py-3 px-3 text-start">{t.resumes.dropzoneTitle}</th>
+                  <th className="py-3 px-3 text-start">{t.common.status}</th>
+                  <th className="py-3 px-3 text-start">{t.resumes.extractedSkillsCount.replace(" ({count})", "")}</th>
+                  <th className="py-3 px-3 text-start">{t.recruiter.dateHeader}</th>
+                  <th className="py-3 px-3 text-end">{t.common.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -348,7 +363,9 @@ export default function CandidatePoolPage() {
                           <User className="w-3.5 h-3.5" />
                         </div>
                         <div>
-                          <div>{res.candidate_name || `Candidate #${res.candidate_id}`}</div>
+                          <div>
+                            <bdi>{res.candidate_name || `Candidate #${res.candidate_id}`}</bdi>
+                          </div>
                           <div className="text-[10px] text-slate-400 font-normal">ID: #{res.candidate_id}</div>
                         </div>
                       </div>
@@ -356,7 +373,7 @@ export default function CandidatePoolPage() {
                     <td className="py-3.5 px-3 text-slate-600 font-medium">
                       <div className="flex items-center gap-1.5">
                         <FileText className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{res.resume_title || "resume.pdf"}</span>
+                        <span><bdi>{res.resume_title || "resume.pdf"}</bdi></span>
                       </div>
                     </td>
                     <td className="py-3.5 px-3">
@@ -371,51 +388,50 @@ export default function CandidatePoolPage() {
                             key={s.candidate_skill_id}
                             onClick={() => setSelectedSkillFilter(s.skill_name)}
                             className="cursor-pointer bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors"
-                            title={s.evidence_text ? `Confidence: ${Math.round((s.confidence_score ?? 1.0) * 100)}% • Evidence: "${s.evidence_text}"` : `Confidence: ${Math.round((s.confidence_score ?? 1.0) * 100)}%`}
                           >
-                            {s.skill_name}
+                            <bdi>{s.skill_name}</bdi>
                           </span>
                         ))}
                         {res.skills && res.skills.length > 4 && (
-                          <span className="text-[10px] text-slate-400">+{res.skills.length - 4} more</span>
+                          <span className="text-[10px] text-slate-400">+{res.skills.length - 4}</span>
                         )}
                       </div>
                     </td>
                     <td className="py-3.5 px-3 text-slate-500 font-mono text-[11px]">
                       {res.created_at ? new Date(res.created_at).toLocaleDateString() : "Recent"}
                     </td>
-                    <td className="py-3.5 px-3 text-right">
+                    <td className="py-3.5 px-3 text-end">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => handleReparseSingle(res.resume_id)}
                           disabled={reparsingId === res.resume_id}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-700 text-xs font-bold transition-all flex items-center gap-1"
-                          title="Re-run NLP skill extraction with open-domain sections"
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                          title="Re-run NLP skill extraction"
                         >
                           <RefreshCw className={`w-3.5 h-3.5 ${reparsingId === res.resume_id ? "animate-spin text-purple-600" : "text-slate-500"}`} />
-                          <span className="hidden xl:inline">{reparsingId === res.resume_id ? "Extracting..." : "Re-extract"}</span>
+                          <span className="hidden xl:inline">{reparsingId === res.resume_id ? t.common.loading : (t.common.activeLanguage === "العربية" ? "إعادة استخراج" : "Re-extract")}</span>
                         </button>
                         <button
                           onClick={() => handleDownload(res.resume_id, res.resume_title)}
                           disabled={downloadingId === res.resume_id}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                           title="Download original CV document"
                         >
                           <Download className={`w-3.5 h-3.5 ${downloadingId === res.resume_id ? "animate-bounce text-brand-600" : ""}`} />
-                          <span className="hidden lg:inline">Download</span>
+                          <span className="hidden lg:inline">{t.common.activeLanguage === "العربية" ? "تحميل" : "Download"}</span>
                         </button>
                         <button
                           onClick={() => setSelectedResume(res)}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
                         >
-                          <Eye className="w-3.5 h-3.5" /> View
+                          <Eye className="w-3.5 h-3.5" /> {t.common.viewDetails}
                         </button>
                         <Link
                           href={`/recruiter?candidate_id=${res.candidate_id}`}
                           className="px-2.5 py-1.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold transition-all flex items-center gap-1"
                         >
-                          <span>Screen</span>
-                          <ArrowUpRight className="w-3.5 h-3.5" />
+                          <span>{t.recruiter.runMatchingBtn}</span>
+                          <ArrowUpRight className="w-3.5 h-3.5 rtl:rotate-180" />
                         </Link>
                       </div>
                     </td>
@@ -429,7 +445,7 @@ export default function CandidatePoolPage() {
 
       {/* Candidate Profile & Raw Text Modal */}
       {selectedResume && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
               <div className="flex items-center gap-2.5">
@@ -438,10 +454,10 @@ export default function CandidatePoolPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-extrabold text-slate-900">
-                    {selectedResume.candidate_name || `Candidate #${selectedResume.candidate_id}`}
+                    <bdi>{selectedResume.candidate_name || `Candidate #${selectedResume.candidate_id}`}</bdi>
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Document: {selectedResume.resume_title || "resume.pdf"}
+                    {t.common.activeLanguage === "العربية" ? "المستند:" : "Document:"} <bdi>{selectedResume.resume_title || "resume.pdf"}</bdi>
                   </p>
                 </div>
               </div>
@@ -449,24 +465,25 @@ export default function CandidatePoolPage() {
                 <button
                   onClick={() => handleReparseSingle(selectedResume.resume_id)}
                   disabled={reparsingId === selectedResume.resume_id}
-                  className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold flex items-center gap-1.5 transition-all border border-purple-200 disabled:opacity-60"
+                  className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold flex items-center gap-1.5 transition-all border border-purple-200 disabled:opacity-60 cursor-pointer"
                   title="Re-run structural verification and open-domain skill extraction"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${reparsingId === selectedResume.resume_id ? "animate-spin text-purple-600" : ""}`} />
-                  <span>{reparsingId === selectedResume.resume_id ? "Re-extracting..." : "Re-extract Skills"}</span>
+                  <span>{reparsingId === selectedResume.resume_id ? t.common.loading : (t.common.activeLanguage === "العربية" ? "إعادة استخراج المهارات" : "Re-extract Skills")}</span>
                 </button>
                 <button
                   onClick={() => handleDownload(selectedResume.resume_id, selectedResume.resume_title)}
                   disabled={downloadingId === selectedResume.resume_id}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all"
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   title="Download authentic CV file"
                 >
                   <Download className={`w-3.5 h-3.5 ${downloadingId === selectedResume.resume_id ? "animate-bounce text-brand-600" : ""}`} />
-                  <span>{downloadingId === selectedResume.resume_id ? "Downloading..." : "Download CV"}</span>
+                  <span>{downloadingId === selectedResume.resume_id ? t.common.loading : (t.common.activeLanguage === "العربية" ? "تحميل السيرة الذاتية" : "Download CV")}</span>
                 </button>
                 <button
                   onClick={() => setSelectedResume(null)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                  aria-label={t.common.close}
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -479,11 +496,13 @@ export default function CandidatePoolPage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-brand-500" />
-                    Extracted Skills & Context Evidence ({selectedResume.skills?.length || 0})
+                    {t.feedback.matchedSkillsTitle} ({selectedResume.skills?.length || 0})
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">Confidence scored via NLP</span>
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {t.common.activeLanguage === "العربية" ? "ثقة الاستخراج محسوبة عبر NLP" : "Confidence scored via NLP"}
+                  </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pe-1">
                   {selectedResume.skills && selectedResume.skills.length > 0 ? (
                     selectedResume.skills.map((s) => (
                       <div
@@ -491,22 +510,26 @@ export default function CandidatePoolPage() {
                         className="p-2.5 rounded-xl bg-slate-50/90 border border-slate-200 hover:border-brand-300 transition-all flex flex-col justify-between gap-1"
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold text-slate-900">{s.skill_name}</span>
+                          <span className="text-xs font-bold text-slate-900">
+                            <bdi>{s.skill_name}</bdi>
+                          </span>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
-                            {Math.round((s.confidence_score ?? 1.0) * 100)}% Match
+                            <bdi dir="ltr">{Math.round((s.confidence_score ?? 1.0) * 100)}%</bdi>
                           </span>
                         </div>
                         {s.evidence_text ? (
                           <p className="text-[11px] text-slate-600 bg-white p-1.5 rounded-lg border border-slate-100 font-mono italic leading-relaxed">
-                            "{s.evidence_text}"
+                            &ldquo;<bdi>{s.evidence_text}</bdi>&rdquo;
                           </p>
                         ) : (
-                          <span className="text-[10px] text-slate-400 italic">Extracted via canonical taxonomy</span>
+                          <span className="text-[10px] text-slate-400 italic">
+                            {t.common.activeLanguage === "العربية" ? "مستخرجة عبر التصنيف القياسي" : "Extracted via canonical taxonomy"}
+                          </span>
                         )}
                       </div>
                     ))
                   ) : (
-                    <span className="text-xs text-slate-400 italic col-span-2">No skills extracted yet</span>
+                    <span className="text-xs text-slate-400 italic col-span-2">{t.resumes.noSkillsFound}</span>
                   )}
                 </div>
               </div>
@@ -514,10 +537,10 @@ export default function CandidatePoolPage() {
               {/* Parsed Raw Text */}
               <div>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                  Parsed Text Content
+                  {t.resumes.viewParsedText}
                 </span>
                 <pre className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 font-mono whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto">
-                  {selectedResume.raw_text || "No text available."}
+                  {selectedResume.raw_text || t.common.noData}
                 </pre>
               </div>
             </div>
@@ -527,24 +550,24 @@ export default function CandidatePoolPage() {
                 <button
                   onClick={() => handleDownload(selectedResume.resume_id, selectedResume.resume_title)}
                   disabled={downloadingId === selectedResume.resume_id}
-                  className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                  className="px-3.5 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
                 >
                   <Download className={`w-3.5 h-3.5 ${downloadingId === selectedResume.resume_id ? "animate-bounce text-brand-600" : "text-slate-500"}`} />
-                  <span>{downloadingId === selectedResume.resume_id ? "Downloading..." : "Download File"}</span>
+                  <span>{downloadingId === selectedResume.resume_id ? t.common.loading : (t.common.activeLanguage === "العربية" ? "تحميل الملف" : "Download File")}</span>
                 </button>
                 <Link
                   href={`/recruiter?candidate_id=${selectedResume.candidate_id}`}
-                  className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm shadow-brand-500/20"
+                  className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs shadow-brand-500/20 cursor-pointer"
                 >
-                  <span>Screen Candidate</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  <span>{t.recruiter.runMatchingBtn}</span>
+                  <ArrowUpRight className="w-3.5 h-3.5 rtl:rotate-180" />
                 </Link>
               </div>
               <button
                 onClick={() => setSelectedResume(null)}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition-all"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition-all cursor-pointer"
               >
-                Close
+                {t.common.close}
               </button>
             </div>
           </div>

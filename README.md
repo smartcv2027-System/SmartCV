@@ -7,7 +7,7 @@
 
 ---
 
-## 📌 Project Overview
+## Project Overview
 
 **SmartCV** is an Explainable Artificial Intelligence (XAI) platform designed for transparent, accountable resume screening and candidate–job matching. Developed for King Khalid University's Capstone Graduation Project, SmartCV solves the "black-box" dilemma in automated hiring by providing verifiable, quote-level evidence and continuous compatibility scoring:
 
@@ -18,20 +18,22 @@
    *(Default: $50\%$ SBERT, $20\%$ TF-IDF, $30\%$ Skills — customizable by recruiters in real time).*
 4. **Explainable AI (XAI) & Structured Feedback Engine** — Verbatim resume quote citations for matched skills, identified skill gaps, and personalized curriculum recommendations for early-career students.
 5. **Role-Based Access Control (RBAC)** — Strictly demarcated workflows for **Recruiters**, **Applicants**, and **System Administrators** with 14 relational database tables and immutable audit logs.
+6. **Bilingual Arabic & English Support (i18n & RTL/LTR)** — Full internationalization across all 16 pages and modals, dynamic bidirectional layout switching, font pairing (`Cairo` for Arabic, `Inter` for English), and 100% key parity (473 keys).
+7. **Document Validation Safeguards** — Multi-layer file security with 0-byte (empty file) rejection, 5 MB file size ceilings, MIME/extension verification, and stream rewind safety for resumes and job specifications.
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
-- **Frontend**: Next.js 14+ (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons.
+- **Frontend**: Next.js 14+ (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons, Full Bilingual Arabic (`العربية`) & English i18n with dynamic RTL/LTR directionality.
 - **Backend**: Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic v2, Uvicorn.
 - **AI & NLP Engine**: `sentence-transformers` (`all-MiniLM-L6-v2`), `scikit-learn`, `nltk`, `pdfplumber`, `pypdf`, `python-docx`.
-- **Database**: Multi-dialect support for **SQLite** (local zero-config), **MySQL**, and **Supabase (PostgreSQL)**.
+- **Database**: Multi-dialect support for **SQLite** (local zero-config default), **MySQL**, and **Supabase (PostgreSQL)**.
 - **Containerization**: Docker, Docker Compose, multi-stage Alpine & Python-slim builds.
 
 ---
 
-## 🚀 Quick Start Guide
+## Quick Start Guide
 
 Choose the startup method that fits your environment:
 
@@ -106,7 +108,7 @@ Open **http://localhost:3000** in your browser.
 
 ---
 
-## 👥 Demo Personas & Credentials
+## Demo Personas & Credentials
 
 | Persona | Name | Role | Username | Password | Features to Explore |
 |---|---|---|---|---|---|
@@ -114,11 +116,11 @@ Open **http://localhost:3000** in your browser.
 | **Applicant** | Fahad Al-Qahtani | `applicant` | `fahad_applicant` | `password123` | View resume overview, inspect extracted skills with evidence quotes, view feedback |
 | **Administrator** | Laila Al-Asmari | `admin` | `laila_admin` | `admin123` | Evaluation dashboard, 1-click LaTeX thesis table export, CSV dataset download, audit logs |
 
-> **Note**: Users can sign in using either their **Username** or **Email Address**. The navigation bar also features a **Demo Role Switcher** dropdown for instantaneous switching between personas without signing out.
+> **Note**: Users can sign in using either their **Username** or **Email Address**. The navigation bar also features a **Demo Role Switcher** dropdown for instantaneous switching between personas without signing out, as well as a one-click **Language Switcher** between Arabic and English.
 
 ---
 
-## 📊 Pre-Seeded Demonstration Corpus
+## Pre-Seeded Demonstration Corpus
 
 The database comes pre-populated with realistic, graduation-project-grade demonstration data modeled after the Saudi and regional technology sectors:
 
@@ -137,7 +139,7 @@ The database comes pre-populated with realistic, graduation-project-grade demons
 
 ---
 
-## 🗄️ Database Configuration (Multi-Dialect)
+## Database Configuration & Migration (Multi-Dialect)
 
 SmartCV supports SQLite, MySQL, and PostgreSQL (including Supabase). Copy `backend/.env.example` to `backend/.env`:
 
@@ -145,22 +147,34 @@ SmartCV supports SQLite, MySQL, and PostgreSQL (including Supabase). Copy `backe
   ```env
   DATABASE_URL="sqlite:///./smartcv.db"
   ```
+* **MySQL (Local / XAMPP / AWS RDS)**:
+  ```env
+  DATABASE_URL="mysql+pymysql://root:password@localhost:3306/smartcv?charset=utf8mb4"
+  ```
 * **Supabase / PostgreSQL Cloud**:
   ```env
   DATABASE_URL="postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?sslmode=require"
   SUPABASE_URL="https://[ref].supabase.co"
   SUPABASE_KEY="eyJhbGci..."
   ```
-* **MySQL (Local / AWS RDS)**:
-  ```env
-  DATABASE_URL="mysql+pymysql://root:password@localhost:3306/smartcv?charset=utf8mb4"
-  ```
+
+### SQLite to MySQL Data Migration
+To migrate existing SQLite data and seed tables to a local or remote MySQL database:
+```bash
+# If u choose mysql must download the Xammp server 
+https://sourceforge.net/projects/xampp/files/latest/download
+# On Windows:
+migrate-mysql.bat
+
+# Or run directly via Python:
+python backend/migrate_to_mysql.py
+```
 
 ---
 
-## 🧪 Testing & Academic Evaluation
+## Testing & Academic Evaluation
 
-### Automated Regression Suite
+### Automated Backend Regression Suite
 Run the 45 backend unit, integration, and AI evaluation tests:
 ```bash
 cd backend
@@ -169,9 +183,17 @@ cd backend
 All **45/45 tests pass (100%)** covering:
 - Authentication & JWT token validation
 - Role-based authorization & permission enforcement (RBAC)
-- Upload validation (whitelists, file replacement, duplicate detection)
+- Upload validation (whitelists, file replacement, duplicate detection, empty file rejection)
 - Structural ATS verification (CV and job description section validation)
 - AI matching, Sentence-BERT strict mode, XAI explainability, and LaTeX generator
+
+### Frontend Internationalization Parity Check
+Verify 100% key parity across Arabic and English dictionaries:
+```bash
+cd frontend
+node scripts/verify-i18n.js
+```
+Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 473 localized keys.
 
 ### Thesis Evaluation Dashboard
 Visit **http://localhost:3000/admin/evaluation** (logged in as `laila_admin`) to inspect:
@@ -182,7 +204,7 @@ Visit **http://localhost:3000/admin/evaluation** (logged in as `laila_admin`) to
 
 ---
 
-## ☁️ Cloud Deployment & Automated CI/CD (100% Free Tier)
+## Cloud Deployment & Automated CI/CD (100% Free Tier)
 
 SmartCV is production-ready for zero-cost cloud hosting ($0.00 / month forever) with automated CI/CD:
 
@@ -196,4 +218,5 @@ SmartCV is production-ready for zero-cost cloud hosting ($0.00 / month forever) 
 * **1-Click Backend Deployment**: Connect your GitHub repository to [Render.com](https://render.com) using the included [`render.yaml`](file:///d:/workspace/2026_2027/FirstSemester/KKU/SmartCV/SmartCV/render.yaml) Blueprint.
 * **1-Click Frontend Deployment**: Import the `frontend` folder into [Vercel](https://vercel.com) and set `NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api/v1`.
 * **Zero Out-of-Memory Risk**: PyTorch is pre-configured with the CPU-only wheel and single-worker concurrency, consuming ~360 MB RAM (comfortably below Render's 512 MB free tier limit).
+
 

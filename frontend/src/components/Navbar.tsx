@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useLanguage, getRoleLabel } from "@/lib/i18n";
 import { 
   Briefcase, 
-  FileText, 
   Users, 
   Brain, 
   ShieldCheck, 
@@ -20,22 +20,24 @@ import {
   Home,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Languages
 } from "lucide-react";
 import { useConfirm } from "@/lib/confirm-context";
 
 export const Navbar: React.FC = () => {
-  const { user, switchPersona, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { confirm } = useConfirm();
+  const { language, dir, toggleLanguage, t, format } = useLanguage();
   const pathname = usePathname();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleLogout = async () => {
     const ok = await confirm({
-      title: "Sign Out",
-      message: `Are you sure you want to sign out of SmartCV as ${user?.full_name}?`,
-      confirmText: "Sign Out",
-      cancelText: "Stay Signed In",
+      title: t.confirm.signOutTitle,
+      message: format(t.confirm.signOutMessage, { name: user?.full_name || "" }),
+      confirmText: t.confirm.signOutConfirm,
+      cancelText: t.confirm.signOutCancel,
       variant: "warning",
     });
     if (ok) {
@@ -78,13 +80,13 @@ export const Navbar: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-1.5">
                     <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-slate-900 via-brand-800 to-indigo-600 bg-clip-text text-transparent">
-                      SmartCV
+                      {t.nav.brandName}
                     </span>
                     <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-100 text-brand-700">
-                      XAI
+                      {t.nav.brandTag}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-500 font-medium">Explainable Talent Matching</p>
+                  <p className="text-[10px] text-slate-500 font-medium">{t.nav.brandSubtitle}</p>
                 </div>
               </Link>
             </div>
@@ -102,7 +104,7 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <Briefcase className="w-4 h-4" />
-                    Dashboard
+                    {t.nav.recruiterWorkspace}
                   </Link>
                   <Link
                     href="/recruiter/jobs"
@@ -113,7 +115,7 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <Sliders className="w-4 h-4" />
-                    Job Postings
+                    {t.nav.jobs}
                   </Link>
                   <Link
                     href="/recruiter/resumes"
@@ -124,7 +126,7 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <Users className="w-4 h-4" />
-                    Candidate Pool
+                    {t.nav.resumes}
                   </Link>
                 </>
               )}
@@ -140,7 +142,7 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <UserCircle className="w-4 h-4" />
-                    My Resume & Feedback
+                    {t.nav.applicantDashboard}
                   </Link>
                 </>
               )}
@@ -156,7 +158,7 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <Activity className="w-4 h-4" />
-                    Overview
+                    {t.nav.adminConsole}
                   </Link>
                   <Link
                     href="/admin/audit-logs"
@@ -167,7 +169,7 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <ShieldCheck className="w-4 h-4" />
-                    Audit Logs
+                    {t.nav.auditLogs}
                   </Link>
                   <Link
                     href="/admin/skills"
@@ -178,7 +180,7 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <Sparkles className="w-4 h-4" />
-                    Skills Taxonomy
+                    {t.nav.skillsTaxonomy}
                   </Link>
                   <Link
                     href="/admin/evaluation"
@@ -189,44 +191,57 @@ export const Navbar: React.FC = () => {
                     }`}
                   >
                     <Brain className="w-4 h-4" />
-                    Model Benchmark
+                    {t.nav.evaluation}
                   </Link>
                 </>
               )}
             </nav>
 
-            {/* User Status / Auth Actions / Mobile Trigger */}
+            {/* Actions: Language Switcher + User Status / Auth Actions / Mobile Trigger */}
             <div className="flex items-center gap-2 sm:gap-3">
+              
+              {/* Language Switcher Button (Desktop & Mobile) */}
+              <button
+                onClick={toggleLanguage}
+                aria-label={t.common.switchLanguage}
+                title={t.common.switchLanguage}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200/90 bg-slate-50/80 hover:bg-brand-50 hover:border-brand-300 text-slate-700 hover:text-brand-700 text-xs font-bold transition-all shadow-2xs hover:scale-105 cursor-pointer"
+              >
+                <Languages className="w-4 h-4 text-brand-600" />
+                <span className="font-semibold">{language === "ar" ? "English" : "العربية"}</span>
+              </button>
+
               {/* Desktop Auth Controls */}
               {user ? (
-                <div className="hidden sm:flex items-center gap-3 pl-2">
-                  <div className="text-right">
+                <div className="hidden sm:flex items-center gap-3 ps-2 border-s border-slate-200/70">
+                  <div className="text-start">
                     <p className="text-xs font-bold text-slate-800 leading-tight">{user.full_name}</p>
                     <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize bg-brand-50 text-brand-700 border border-brand-200/60">
-                      {user.role_type}
+                      {getRoleLabel(user.role_type, t)}
                     </span>
                   </div>
                   <button
                     onClick={handleLogout}
-                    title="Logout"
+                    title={t.nav.signOut}
+                    aria-label={t.nav.signOut}
                     className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-4 h-4 rtl:rotate-180" />
                   </button>
                 </div>
               ) : (
-                <div className="hidden sm:flex items-center gap-2">
+                <div className="hidden sm:flex items-center gap-2 ps-2 border-s border-slate-200/70">
                   <Link
                     href="/login"
                     className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                   >
-                    Sign In
+                    {t.nav.signIn}
                   </Link>
                   <Link
                     href="/register"
-                    className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all"
+                    className="px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-bold shadow-xs transition-all hover:scale-105"
                   >
-                    Register
+                    {t.nav.register}
                   </Link>
                 </div>
               )}
@@ -235,7 +250,7 @@ export const Navbar: React.FC = () => {
               <button
                 onClick={() => setIsDrawerOpen(!isDrawerOpen)}
                 className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors md:hidden focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                aria-label="Toggle navigation drawer"
+                aria-label={t.nav.menu}
                 aria-expanded={isDrawerOpen}
               >
                 {isDrawerOpen ? (
@@ -265,8 +280,12 @@ export const Navbar: React.FC = () => {
 
       {/* Slide-over Drawer Panel */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-4/5 max-w-sm bg-white shadow-2xl border-l border-slate-200/90 flex flex-col transition-transform duration-300 ease-in-out md:hidden ${
-          isDrawerOpen ? "translate-x-0" : "translate-x-full"
+        className={`fixed top-0 start-0 z-50 h-full w-4/5 max-w-sm bg-white shadow-2xl border-e border-slate-200/90 flex flex-col transition-transform duration-300 ease-in-out md:hidden ${
+          isDrawerOpen
+            ? "translate-x-0"
+            : dir === "rtl"
+            ? "translate-x-full"
+            : "-translate-x-full"
         }`}
       >
         {/* Drawer Header */}
@@ -278,20 +297,20 @@ export const Navbar: React.FC = () => {
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-base tracking-tight text-slate-900">
-                  SmartCV
+                  {t.nav.brandName}
                 </span>
                 <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-brand-100 text-brand-700">
-                  XAI
+                  {t.nav.brandTag}
                 </span>
               </div>
-              <p className="text-[10px] text-slate-500 font-medium">Explainable Talent Matching</p>
+              <p className="text-[10px] text-slate-500 font-medium">{t.nav.brandSubtitle}</p>
             </div>
           </div>
           
           <button
             onClick={() => setIsDrawerOpen(false)}
             className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
-            aria-label="Close drawer"
+            aria-label={t.common.close}
           >
             <X className="w-5 h-5" />
           </button>
@@ -308,10 +327,10 @@ export const Navbar: React.FC = () => {
                 <p className="text-sm font-bold text-slate-900 truncate">{user.full_name}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-brand-200/80 text-brand-800">
-                    {user.role_type}
+                    {getRoleLabel(user.role_type, t)}
                   </span>
                   {user.username && (
-                    <span className="text-[11px] text-slate-500 truncate">@{user.username}</span>
+                    <span className="text-[11px] text-slate-500 truncate" dir="ltr">@{user.username}</span>
                   )}
                 </div>
               </div>
@@ -325,7 +344,7 @@ export const Navbar: React.FC = () => {
           {/* Main Navigation Section */}
           <div className="space-y-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3">
-              Navigation
+              {t.nav.menu}
             </span>
 
             {/* Home Link */}
@@ -340,9 +359,9 @@ export const Navbar: React.FC = () => {
             >
               <div className="flex items-center gap-2.5">
                 <Home className="w-4 h-4 text-slate-500" />
-                <span>Home Page</span>
+                <span>{t.nav.home}</span>
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
             </Link>
 
             {/* Role-Specific Navigation */}
@@ -359,9 +378,9 @@ export const Navbar: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <Briefcase className="w-4 h-4 text-brand-600" />
-                    <span>Recruiter Dashboard</span>
+                    <span>{t.nav.recruiterWorkspace}</span>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
 
                 <Link
@@ -375,9 +394,9 @@ export const Navbar: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <Sliders className="w-4 h-4 text-indigo-600" />
-                    <span>Job Postings</span>
+                    <span>{t.nav.jobs}</span>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
 
                 <Link
@@ -391,9 +410,9 @@ export const Navbar: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <Users className="w-4 h-4 text-emerald-600" />
-                    <span>Candidate Pool</span>
+                    <span>{t.nav.resumes}</span>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
               </>
             )}
@@ -410,9 +429,9 @@ export const Navbar: React.FC = () => {
               >
                 <div className="flex items-center gap-2.5">
                   <UserCircle className="w-4 h-4 text-emerald-600" />
-                  <span>My Resume & Feedback</span>
+                  <span>{t.nav.applicantDashboard}</span>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
               </Link>
             )}
 
@@ -429,9 +448,9 @@ export const Navbar: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <Activity className="w-4 h-4 text-purple-600" />
-                    <span>Admin Overview</span>
+                    <span>{t.nav.adminConsole}</span>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
 
                 <Link
@@ -445,9 +464,9 @@ export const Navbar: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <ShieldCheck className="w-4 h-4 text-brand-600" />
-                    <span>Audit Logs</span>
+                    <span>{t.nav.auditLogs}</span>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
 
                 <Link
@@ -461,9 +480,9 @@ export const Navbar: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <Sparkles className="w-4 h-4 text-amber-600" />
-                    <span>Skills Taxonomy</span>
+                    <span>{t.nav.skillsTaxonomy}</span>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
 
                 <Link
@@ -477,9 +496,9 @@ export const Navbar: React.FC = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <Brain className="w-4 h-4 text-indigo-600" />
-                    <span>Model Benchmark</span>
+                    <span>{t.nav.evaluation}</span>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
               </>
             )}
@@ -489,7 +508,7 @@ export const Navbar: React.FC = () => {
           {!user && (
             <div className="space-y-2 pt-2 border-t border-slate-100">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3">
-                Account Access
+                {t.nav.menu}
               </span>
 
               <Link
@@ -498,7 +517,7 @@ export const Navbar: React.FC = () => {
                 className="w-full px-3.5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
               >
                 <LogIn className="w-4 h-4" />
-                <span>Sign In to Portal</span>
+                <span>{t.nav.signIn}</span>
               </Link>
 
               <Link
@@ -507,7 +526,7 @@ export const Navbar: React.FC = () => {
                 className="w-full px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs border border-slate-200/80 flex items-center justify-center gap-2 transition-all"
               >
                 <UserPlus className="w-4 h-4 text-brand-600" />
-                <span>Create New Account</span>
+                <span>{t.nav.register}</span>
               </Link>
             </div>
           )}
@@ -521,12 +540,12 @@ export const Navbar: React.FC = () => {
               onClick={handleLogout}
               className="w-full px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold flex items-center justify-center gap-2 transition-colors border border-rose-200/60 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out ({user.full_name})</span>
+              <LogOut className="w-4 h-4 rtl:rotate-180" />
+              <span>{t.nav.signOut} ({user.full_name})</span>
             </button>
           ) : (
             <p className="text-center text-[11px] text-slate-400 font-medium">
-              SmartCV Explainable AI Platform
+              {t.nav.brandName} {t.nav.brandSubtitle}
             </p>
           )}
         </div>

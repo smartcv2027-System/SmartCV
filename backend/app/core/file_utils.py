@@ -63,6 +63,7 @@ async def validate_and_read_upload(
         )
 
     # Read bytes
+    await file.seek(0)
     file_bytes = await file.read()
     if not file_bytes or len(file_bytes) == 0:
         raise HTTPException(

@@ -212,3 +212,71 @@ def test_longest_match_and_bullet_harvesting():
     assert "Natural Language Processing" in nlp_skill["evidence_text"]
     assert nlp_skill["confidence_score"] >= 0.90
 
+def test_matcher_high_compatibility_score_strong_match():
+    """Verify that a candidate with near-perfect technical and contextual alignment achieves a high score (>= 75.0%) and 'Strong Match' status."""
+    matcher = SmartCVMatcher()
+    
+    # Highly aligned senior profile directly matching the AI Engineer role
+    resume = """
+    ABDULAZIZ AL-GHAMDI - Senior AI & Machine Learning Engineer
+    Riyadh, Saudi Arabia | abdulaziz.nlp@kku.edu.sa | +966 50 234 5678
+    
+    PROFESSIONAL SUMMARY:
+    High-potential Senior AI & Machine Learning Engineer specializing in developing and evaluating predictive machine learning pipelines, building and fine-tuning Natural Language Processing (NLP) models, and deploying algorithms as robust microservices via FastAPI and PostgreSQL.
+    
+    TECHNICAL SKILLS & COMPETENCIES:
+    - Programming & Databases: Python, SQL, PostgreSQL
+    - AI & Machine Learning: Machine Learning, PyTorch, Scikit-Learn, Natural Language Processing (NLP)
+    - Web & Tools: FastAPI, Git, GitHub
+    - Professional Competencies: Team Collaboration, Problem Solving
+    
+    EXPERIENCE & KEY RESPONSIBILITIES:
+    - Lead AI Engineer | Applied AI and Data Intelligence Team:
+      • Developed and evaluated predictive machine learning pipelines using Python, PyTorch, and Scikit-Learn.
+      • Built and fine-tuned Natural Language Processing (NLP) models using BERT and Transformer architectures.
+      • Collaborated with software engineers to deploy algorithms as robust microservices via FastAPI and PostgreSQL.
+      • Performed exploratory data analysis and queried operational databases using SQL.
+      • Maintained version control and participated in code reviews using Git and GitHub.
+    
+    EDUCATION:
+    - Bachelor's degree in Computer Science, King Khalid University.
+      Relevant coursework: Machine Learning, PyTorch, Scikit-Learn, Natural Language Processing (NLP).
+    """
+    
+    job = """
+    AI & Machine Learning Engineer Position Overview
+    We are seeking a high-potential AI & Machine Learning Engineer to join our Applied AI and Data Intelligence team.
+    
+    KEY RESPONSIBILITIES:
+    - Develop and evaluate predictive machine learning pipelines using Python, PyTorch, and Scikit-Learn.
+    - Build and fine-tune Natural Language Processing (NLP) models using BERT and Transformer architectures.
+    - Collaborate with software engineers to deploy algorithms as robust microservices via FastAPI and PostgreSQL.
+    - Perform exploratory data analysis and query operational databases using SQL.
+    - Maintain version control and CI/CD workflows using Git and GitHub.
+    
+    REQUIREMENTS & QUALIFICATIONS:
+    - Bachelor's degree in Computer Science, AI, or Information Systems.
+    - Strong programming foundation in Python and SQL.
+    - Proven coursework or project experience in Machine Learning, PyTorch, and Scikit-Learn.
+    - Hands-on experience with FastAPI, Natural Language Processing (NLP), and PostgreSQL.
+    - Excellent team collaboration and analytical problem solving abilities.
+    """
+    
+    resume_skills = {s["skill_name"] for s in extract_skills_from_text(resume)}
+    job_skills = {s["skill_name"] for s in extract_skills_from_text(job)}
+    matched_skills = resume_skills.intersection(job_skills)
+    
+    res = matcher.match_resume_to_job(
+        resume_text=resume,
+        job_text=job,
+        matched_skills_count=len(matched_skills),
+        total_job_skills_count=len(job_skills)
+    )
+    print(res)
+    # Assert high match score and "Strong Match" designation
+    assert res["compatibility_score"] >= 75.0, (
+        f"Expected high match score >= 75.0, got {res['compatibility_score']}"
+    )
+    assert res["recommendation_status"] == "Strong Match"
+    assert res["skill_overlap_ratio"] >= 85.0
+    assert res["bert_score"] >= 75.0

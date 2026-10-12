@@ -302,7 +302,7 @@ async def replace_job_file(
             detail="Forbidden: You can only replace files for job postings that you created."
         )
 
-    upload_data = await validate_and_read_upload(file)
+    upload_data = await validate_and_read_upload(file, expected_document_type="job")
     checksum = upload_data["checksum"]
     extracted_text = upload_data["extracted_text"]
 
