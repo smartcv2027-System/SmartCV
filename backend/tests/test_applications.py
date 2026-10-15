@@ -38,40 +38,41 @@ def test_applicant_apply_to_job_flow(auth_tokens):
     assert job_resp.status_code == 200, f"Expected 200, got {job_resp.status_code}: {job_resp.text}"
     job_id = job_resp.json()["job_id"]
 
-    # Step 2: Fahad applies to this new job
-    apply_resp = client.post(f"/api/v1/applications/jobs/{job_id}/apply", headers=fahad_headers)
-    assert apply_resp.status_code == 201, f"Expected 201, got {apply_resp.status_code}: {apply_resp.text}"
-    app_data = apply_resp.json()
-    assert app_data["job_id"] == job_id
-    assert app_data["status"] == "applied"
-    assert "application_id" in app_data
-    app_id = app_data["application_id"]
+    try:
+        # Step 2: Fahad applies to this new job
+        apply_resp = client.post(f"/api/v1/applications/jobs/{job_id}/apply", headers=fahad_headers)
+        assert apply_resp.status_code == 201, f"Expected 201, got {apply_resp.status_code}: {apply_resp.text}"
+        app_data = apply_resp.json()
+        assert app_data["job_id"] == job_id
+        assert app_data["status"] == "applied"
+        assert "application_id" in app_data
+        app_id = app_data["application_id"]
 
-    # Step 3: Duplicate application attempt must return 400 Bad Request
-    dup_resp = client.post(f"/api/v1/applications/jobs/{job_id}/apply", headers=fahad_headers)
-    assert dup_resp.status_code == 400
-    assert "already applied" in dup_resp.json()["detail"].lower()
+        # Step 3: Duplicate application attempt must return 400 Bad Request
+        dup_resp = client.post(f"/api/v1/applications/jobs/{job_id}/apply", headers=fahad_headers)
+        assert dup_resp.status_code == 400
+        assert "already applied" in dup_resp.json()["detail"].lower()
 
-    # Step 4: Candidate retrieves their own applications
-    my_apps_resp = client.get("/api/v1/applications/my", headers=fahad_headers)
-    assert my_apps_resp.status_code == 200
-    my_apps = my_apps_resp.json()
-    assert any(a["job_id"] == job_id for a in my_apps)
+        # Step 4: Candidate retrieves their own applications
+        my_apps_resp = client.get("/api/v1/applications/my", headers=fahad_headers)
+        assert my_apps_resp.status_code == 200
+        my_apps = my_apps_resp.json()
+        assert any(a["job_id"] == job_id for a in my_apps)
 
-    # Step 5: Recruiter views applicants for this job
-    job_apps_resp = client.get(f"/api/v1/applications/job/{job_id}", headers=sarah_headers)
-    assert job_apps_resp.status_code == 200
-    job_apps = job_apps_resp.json()
-    assert len(job_apps) == 1
-    assert "Fahad" in job_apps[0]["candidate_name"]
+        # Step 5: Recruiter views applicants for this job
+        job_apps_resp = client.get(f"/api/v1/applications/job/{job_id}", headers=sarah_headers)
+        assert job_apps_resp.status_code == 200
+        job_apps = job_apps_resp.json()
+        assert len(job_apps) == 1
+        assert "Fahad" in job_apps[0]["candidate_name"]
 
-    # Step 6: Candidate withdraws their application
-    withdraw_resp = client.delete(f"/api/v1/applications/{app_id}", headers=fahad_headers)
-    assert withdraw_resp.status_code == 200
-    assert "withdrawn successfully" in withdraw_resp.json()["message"].lower()
-
-    # Step 7: Clean up test job
-    client.delete(f"/api/v1/jobs/{job_id}", headers=sarah_headers)
+        # Step 6: Candidate withdraws their application
+        withdraw_resp = client.delete(f"/api/v1/applications/{app_id}", headers=fahad_headers)
+        assert withdraw_resp.status_code == 200
+        assert "withdrawn successfully" in withdraw_resp.json()["message"].lower()
+    finally:
+        # Step 7: Clean up test job
+        client.delete(f"/api/v1/jobs/{job_id}", headers=sarah_headers)
 
 def test_matching_requires_job_applications(auth_tokens):
     """
@@ -93,24 +94,25 @@ def test_matching_requires_job_applications(auth_tokens):
     assert job_resp.status_code == 200, f"Expected 200, got {job_resp.status_code}: {job_resp.text}"
     job_id = job_resp.json()["job_id"]
 
-    # Step 2: Attempt matching before any applicant applies -> Must return 400 Bad Request
-    match_fail_resp = client.post("/api/v1/matching/run", json={"job_id": job_id}, headers=sarah_headers)
-    assert match_fail_resp.status_code == 400
-    assert "no candidates have applied" in match_fail_resp.json()["detail"].lower()
+    try:
+        # Step 2: Attempt matching before any applicant applies -> Must return 400 Bad Request
+        match_fail_resp = client.post("/api/v1/matching/run", json={"job_id": job_id}, headers=sarah_headers)
+        assert match_fail_resp.status_code == 400
+        assert "no candidates have applied" in match_fail_resp.json()["detail"].lower()
 
-    # Step 3: Fahad applies to this job
-    apply_resp = client.post(f"/api/v1/applications/jobs/{job_id}/apply", headers=fahad_headers)
-    assert apply_resp.status_code == 201
+        # Step 3: Fahad applies to this job
+        apply_resp = client.post(f"/api/v1/applications/jobs/{job_id}/apply", headers=fahad_headers)
+        assert apply_resp.status_code == 201
 
-    # Step 4: Run matching now -> Must succeed and return strictly 1 candidate (Fahad)
-    match_ok_resp = client.post("/api/v1/matching/run", json={"job_id": job_id}, headers=sarah_headers)
-    assert match_ok_resp.status_code == 200
-    match_data = match_ok_resp.json()
-    assert match_data["total_candidates"] == 1, f"Expected exactly 1 applicant, got {match_data['total_candidates']}"
-    assert "Fahad" in match_data["results"][0]["candidate_name"]
-
-    # Step 5: Clean up test job
-    client.delete(f"/api/v1/jobs/{job_id}", headers=sarah_headers)
+        # Step 4: Run matching now -> Must succeed and return strictly 1 candidate (Fahad)
+        match_ok_resp = client.post("/api/v1/matching/run", json={"job_id": job_id}, headers=sarah_headers)
+        assert match_ok_resp.status_code == 200
+        match_data = match_ok_resp.json()
+        assert match_data["total_candidates"] == 1, f"Expected exactly 1 applicant, got {match_data['total_candidates']}"
+        assert "Fahad" in match_data["results"][0]["candidate_name"]
+    finally:
+        # Step 5: Clean up test job
+        client.delete(f"/api/v1/jobs/{job_id}", headers=sarah_headers)
 
 def test_recruiter_cannot_apply_to_job(auth_tokens):
     """Only candidates (applicant role) can submit job applications."""
