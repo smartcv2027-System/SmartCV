@@ -17,9 +17,10 @@
    $$\text{Compatibility} = w_{\text{sbert}} \cdot S_{\text{semantic}} + w_{\text{tfidf}} \cdot S_{\text{lexical}} + w_{\text{skills}} \cdot S_{\text{skills}}$$
    *(Default: $50\%$ SBERT, $20\%$ TF-IDF, $30\%$ Skills — customizable by recruiters in real time).*
 4. **Explainable AI (XAI) & Structured Feedback Engine** — Verbatim resume quote citations for matched skills, identified skill gaps, and personalized curriculum recommendations for early-career students.
-5. **Role-Based Access Control (RBAC)** — Strictly demarcated workflows for **Recruiters**, **Applicants**, and **System Administrators** with 14 relational database tables and immutable audit logs.
-6. **Bilingual Arabic & English Support (i18n & RTL/LTR)** — Full internationalization across all 16 pages and modals, dynamic bidirectional layout switching, font pairing (`Cairo` for Arabic, `Inter` for English), and 100% key parity (473 keys).
+5. **Role-Based Access Control (RBAC)** — Strictly demarcated workflows for **Recruiters**, **Applicants**, and **System Administrators** with 15 relational database tables and immutable audit logs.
+6. **Bilingual Arabic & English Support (i18n & RTL/LTR)** — Full internationalization across all 16 pages and modals, dynamic bidirectional layout switching, font pairing (`Cairo` for Arabic, `Inter` for English), and 100% key parity (497 keys).
 7. **Document Validation Safeguards** — Multi-layer file security with 0-byte (empty file) rejection, 5 MB file size ceilings, MIME/extension verification, and stream rewind safety for resumes and job specifications.
+8. **Candidate Job Applications & Filtered Screening** — Applicants can explore open positions, submit 1-click applications with their active parsed CV, and track submission statuses. AI semantic screening strictly and exclusively evaluates candidates who submitted a job application for the target posting, with automated zero-applicant safety guards.
 
 ---
 
@@ -85,7 +86,7 @@ source .venv/Scripts/activate  # or source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Seed demonstration data (15 candidates, 6 enterprise jobs, 90 AI matches)
+# Seed demonstration data (15 candidates, 6 enterprise jobs, realistic applicant submissions & AI matches)
 python -m app.seed --force
 
 # Start FastAPI server
@@ -111,8 +112,8 @@ Open **http://localhost:3000** in your browser.
 
 | Persona | Name | Role | Username | Password | Features to Explore |
 |---|---|---|---|---|---|
-| **Recruiter** | Sarah Al-Ghamdi | `recruiter` | `sarah_recruiter` | `password123` | View 6 tech jobs, review ranked applicants, tune AI weights, export dossiers, create jobs |
-| **Applicant** | Fahad Al-Qahtani | `applicant` | `fahad_applicant` | `password123` | View resume overview, inspect extracted skills with evidence quotes, view feedback |
+| **Recruiter** | Sarah Al-Ghamdi | `recruiter` | `sarah_recruiter` | `password123` | View 6 tech jobs, review applicants, tune AI weights, run applicant-filtered screening, export dossiers, create jobs |
+| **Applicant** | Fahad Al-Qahtani | `applicant` | `fahad_applicant` | `password123` | Inspect extracted skills with evidence quotes, browse open jobs, submit 1-click applications with CV, track statuses, view feedback |
 | **Administrator** | Laila Al-Asmari | `admin` | `laila_admin` | `admin123` | Evaluation dashboard, 1-click LaTeX thesis table export, CSV dataset download, audit logs |
 
 > **Note**: Users can sign in using either their **Username** or **Email Address**. The navigation bar also features a **Demo Role Switcher** dropdown for instantaneous switching between personas without signing out, as well as a one-click **Language Switcher** between Arabic and English.
@@ -133,7 +134,7 @@ The database comes pre-populated with realistic, graduation-project-grade demons
   4. *Cybersecurity SOC Analyst & Defense Specialist* (SIEM, Abha / Hybrid)
   5. *Data Engineer & Business Intelligence Specialist* (SQL, Power BI, Jeddah)
   6. *Full-Stack Software Engineer* (FastAPI, React, PostgreSQL, Riyadh)
-- **90 Pre-Calculated AI Matches**: Full $15 \times 6$ candidate–job matrix pre-computed with Sentence-BERT, TF-IDF, verbatim evidence quotes, and XAI summaries.
+- **Candidate Job Applications & Pre-Calculated AI Matches**: Realistic multi-track applicant submissions across postings with pre-computed Sentence-BERT, TF-IDF, verbatim evidence quotes, and XAI summaries linked strictly to submitted job applications.
 - **Physical Resume Files**: Stored in `backend/uploads/` so downloading or viewing resumes in the browser always succeeds without 404s.
 
 ---
@@ -174,16 +175,17 @@ python backend/migrate_to_mysql.py
 ## Testing & Academic Evaluation
 
 ### Automated Backend Regression Suite
-Run the 45 backend unit, integration, and AI evaluation tests:
+Run the 50 backend unit, integration, and AI evaluation tests:
 ```bash
 cd backend
 .\.venv\Scripts\pytest -v
 ```
-All **45/45 tests pass (100%)** covering:
+All **50/50 tests pass (100%)** covering:
 - Authentication & JWT token validation
 - Role-based authorization & permission enforcement (RBAC)
 - Upload validation (whitelists, file replacement, duplicate detection, empty file rejection)
 - Structural ATS verification (CV and job description section validation)
+- Job application lifecycle & applicant-exclusive matching (apply, duplicate prevention, withdrawal, 0-applicant rejection)
 - AI matching, Sentence-BERT strict mode, XAI explainability, and LaTeX generator
 
 ### Frontend Internationalization Parity Check
@@ -192,7 +194,7 @@ Verify 100% key parity across Arabic and English dictionaries:
 cd frontend
 node scripts/verify-i18n.js
 ```
-Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 473 localized keys.
+Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 497 localized keys.
 
 ### Thesis Evaluation Dashboard
 Visit **http://localhost:3000/admin/evaluation** (logged in as `laila_admin`) to inspect:
@@ -212,7 +214,7 @@ SmartCV is production-ready for zero-cost cloud hosting ($0.00 / month forever) 
 | **Frontend Web App** | **Vercel** | 100 GB Bandwidth, Global Edge CDN | Next.js 16.3.5 App Router |
 | **AI & Backend Service** | **Render.com** | 750 Instance Hours/Mo, 512 MB RAM | FastAPI + Sentence-BERT Engine |
 | **Cloud Relational DB** | **Supabase** | 500 MB PostgreSQL, Session Pooler | 15 Relational Tables & Audit Logs |
-| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 45 tests & deploys on `git push` |
+| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 50 tests & deploys on `git push` |
 
 * **1-Click Backend Deployment**: Connect your GitHub repository to [Render.com](https://render.com) using the included [`render.yaml`](file:///d:/workspace/2026_2027/FirstSemester/KKU/SmartCV/SmartCV/render.yaml) Blueprint.
 * **1-Click Frontend Deployment**: Import the `frontend` folder into [Vercel](https://vercel.com) and set `NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api/v1`.
