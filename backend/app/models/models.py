@@ -2,7 +2,7 @@ import enum
 from datetime import datetime
 from sqlalchemy import (
     Column, Integer, String, Text, Boolean, Float, DateTime, 
-    ForeignKey, Enum as SAEnum, JSON
+    ForeignKey, Enum as SAEnum, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.db.database import Base
@@ -68,6 +68,7 @@ class CandidateProfile(Base):
     candidate_skills = relationship("CandidateSkill", back_populates="candidate", cascade="all, delete-orphan")
     match_results = relationship("MatchResult", back_populates="candidate", cascade="all, delete-orphan")
     applicant_feedbacks = relationship("ApplicantFeedback", back_populates="candidate", cascade="all, delete-orphan")
+    applications = relationship("JobApplication", back_populates="candidate", cascade="all, delete-orphan")
 
 class UploadedFile(Base):
     __tablename__ = "uploaded_files"
@@ -105,6 +106,7 @@ class Resume(Base):
     file = relationship("UploadedFile", back_populates="resumes")
     candidate_skills = relationship("CandidateSkill", back_populates="resume", cascade="all, delete-orphan")
     match_results = relationship("MatchResult", back_populates="resume", cascade="all, delete-orphan")
+    applications = relationship("JobApplication", back_populates="resume", cascade="all, delete-orphan")
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -128,6 +130,7 @@ class Job(Base):
     file = relationship("UploadedFile", back_populates="jobs")
     job_skills = relationship("JobSkill", back_populates="job", cascade="all, delete-orphan")
     match_results = relationship("MatchResult", back_populates="job", cascade="all, delete-orphan")
+    applications = relationship("JobApplication", back_populates="job", cascade="all, delete-orphan")
 
 class Skill(Base):
     __tablename__ = "skills"
@@ -184,6 +187,7 @@ class MatchResult(Base):
     job_id = Column(Integer, ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=False)
     candidate_id = Column(Integer, ForeignKey("candidate_profiles.candidate_id", ondelete="CASCADE"), nullable=False)
     resume_id = Column(Integer, ForeignKey("resumes.resume_id", ondelete="CASCADE"), nullable=False)
+    application_id = Column(Integer, ForeignKey("job_applications.application_id", ondelete="SET NULL"), nullable=True)
     rank_position = Column(Integer, nullable=True)
     tfidf_score = Column(Float, default=0.0)
     bert_score = Column(Float, default=0.0)
@@ -195,10 +199,33 @@ class MatchResult(Base):
     job = relationship("Job", back_populates="match_results")
     candidate = relationship("CandidateProfile", back_populates="match_results")
     resume = relationship("Resume", back_populates="match_results")
+    application = relationship("JobApplication", back_populates="match_result")
     matched_skills = relationship("MatchedSkill", back_populates="match_result", cascade="all, delete-orphan")
     missing_skills = relationship("MissingSkill", back_populates="match_result", cascade="all, delete-orphan")
     explanation_summary = relationship("ExplanationSummary", back_populates="match_result", uselist=False, cascade="all, delete-orphan")
     applicant_feedback = relationship("ApplicantFeedback", back_populates="match_result", uselist=False, cascade="all, delete-orphan")
+
+class JobApplication(Base):
+    __tablename__ = "job_applications"
+
+    application_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    job_id = Column(Integer, ForeignKey("jobs.job_id", ondelete="CASCADE"), nullable=False, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidate_profiles.candidate_id", ondelete="CASCADE"), nullable=False, index=True)
+    resume_id = Column(Integer, ForeignKey("resumes.resume_id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(50), default="applied")  # 'applied', 'screened', 'reviewed', 'shortlisted', 'rejected'
+    cover_letter = Column(Text, nullable=True)
+    applied_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("job_id", "candidate_id", name="uq_candidate_job_application"),
+    )
+
+    # Relationships
+    job = relationship("Job", back_populates="applications")
+    candidate = relationship("CandidateProfile", back_populates="applications")
+    resume = relationship("Resume", back_populates="applications")
+    match_result = relationship("MatchResult", back_populates="application", uselist=False)
 
 class MatchedSkill(Base):
     __tablename__ = "matched_skills"

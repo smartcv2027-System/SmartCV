@@ -45,6 +45,24 @@ export interface Job {
   status: string;
   created_at: string;
   skills: JobSkill[];
+  applications_count?: number;
+  has_applied?: boolean;
+}
+
+export interface JobApplication {
+  application_id: number;
+  job_id: number;
+  job_title: string;
+  candidate_id: number;
+  candidate_name: string;
+  resume_id: number;
+  resume_title?: string;
+  status: "applied" | "screened" | "reviewed" | "shortlisted" | "rejected";
+  cover_letter?: string;
+  applied_at: string;
+  compatibility_score?: number;
+  recommendation_status?: "Strong Match" | "Good Match" | "Low Match";
+  result_id?: number;
 }
 
 export interface JobFileParseResponse {
@@ -267,13 +285,17 @@ export const api = {
 
   // Jobs
   async getJobs(): Promise<Job[]> {
-    const res = await fetch(`${API_BASE}/jobs/`);
+    const res = await fetch(`${API_BASE}/jobs/`, {
+      headers: getAuthHeaders()
+    });
     if (!res.ok) throw new Error("Failed to fetch jobs");
     return res.json();
   },
 
   async getJob(id: number): Promise<Job> {
-    const res = await fetch(`${API_BASE}/jobs/${id}`);
+    const res = await fetch(`${API_BASE}/jobs/${id}`, {
+      headers: getAuthHeaders()
+    });
     if (!res.ok) throw new Error("Failed to fetch job");
     return res.json();
   },
@@ -327,6 +349,57 @@ export const api = {
       headers: getAuthHeaders()
     });
     if (!res.ok) throw new Error("Failed to delete job");
+  },
+
+  // Job Applications
+  async applyToJob(jobId: number, coverLetter?: string, resumeId?: number): Promise<JobApplication> {
+    const res = await fetch(`${API_BASE}/applications/jobs/${jobId}/apply`, {
+      method: "POST",
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ cover_letter: coverLetter, resume_id: resumeId })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to submit job application");
+    }
+    return res.json();
+  },
+
+  async getMyApplications(): Promise<JobApplication[]> {
+    const res = await fetch(`${API_BASE}/applications/my`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to fetch job applications");
+    }
+    return res.json();
+  },
+
+  async getJobApplications(jobId: number): Promise<JobApplication[]> {
+    const res = await fetch(`${API_BASE}/applications/job/${jobId}`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to fetch candidate applications");
+    }
+    return res.json();
+  },
+
+  async withdrawApplication(applicationId: number): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/applications/${applicationId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to withdraw application");
+    }
+    return res.json();
   },
 
   // Resumes

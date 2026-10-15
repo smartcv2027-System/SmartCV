@@ -38,6 +38,20 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 class Base(DeclarativeBase):
     pass
 
+def ensure_schema():
+    Base.metadata.create_all(bind=engine)
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(engine)
+        if "match_results" in inspector.get_table_names():
+            columns = [c["name"] for c in inspector.get_columns("match_results")]
+            if "application_id" not in columns:
+                with engine.begin() as conn:
+                    conn.execute(text("ALTER TABLE match_results ADD COLUMN application_id INT NULL"))
+                    print("[INFO] Added application_id column to match_results table.")
+    except Exception as e:
+        print(f"[WARNING] ensure_schema migration check error: {e}")
+
 def get_db():
     db = SessionLocal()
     try:

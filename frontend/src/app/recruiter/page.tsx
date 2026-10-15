@@ -202,9 +202,14 @@ export default function RecruiterDashboard() {
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-base font-extrabold text-slate-900">{job.job_title}</h3>
-                  <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    {job.status}
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+                      {format(t.matching.totalApplicantsCount, { count: job.applications_count || 0 })}
+                    </span>
+                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {job.status}
+                    </span>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-500 line-clamp-2 mb-3">
                   {job.job_summary || job.raw_job_text}

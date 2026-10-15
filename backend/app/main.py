@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.db.database import engine, Base
-from app.api import auth, jobs, resumes, matching, admin, evaluation
+from app.db.database import engine, Base, ensure_schema
+from app.api import auth, jobs, resumes, matching, admin, evaluation, applications
 
-# Initialize database schema
-Base.metadata.create_all(bind=engine)
+# Initialize database schema and verify migrations
+ensure_schema()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -31,6 +31,7 @@ app.add_middleware(
 # API Routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["Authentication"])
 app.include_router(jobs.router, prefix=f"{settings.API_V1_STR}/jobs", tags=["Job Postings"])
+app.include_router(applications.router, prefix=f"{settings.API_V1_STR}/applications", tags=["Job Applications"])
 app.include_router(resumes.router, prefix=f"{settings.API_V1_STR}/resumes", tags=["Resumes & NLP"])
 app.include_router(matching.router, prefix=f"{settings.API_V1_STR}/matching", tags=["Matching & Explainability"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["Administration & Audit"])

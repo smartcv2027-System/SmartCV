@@ -5,7 +5,7 @@ from app.db.database import get_db
 from app.models.models import (
     Job, JobSkill, Resume, CandidateProfile, MatchResult, MatchedSkill, MissingSkill, 
     ExplanationSummary, ApplicantFeedback, CandidateSkill, Skill,
-    User, UserRole, AuditLog
+    User, UserRole, AuditLog, JobApplication
 )
 from app.schemas.schemas import (
     MatchJobRequest, JobRankingSummary, MatchResultDetail,
@@ -90,7 +90,7 @@ def run_job_matching(
 ):
     """
     Executes two-layer semantic screening + XAI explanation generation
-    for candidate resumes against the selected job post.
+    EXCLUSIVELY for candidates who have submitted job applications for the selected job.
     """
     from sqlalchemy.orm import joinedload
     job = (
@@ -102,20 +102,24 @@ def run_job_matching(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
 
-    # Fetch candidate resumes with skills
+    # Fetch candidate applications submitted for this job
     query = (
-        db.query(Resume)
-        .options(joinedload(Resume.candidate_skills).joinedload(CandidateSkill.skill))
+        db.query(JobApplication)
+        .options(
+            joinedload(JobApplication.resume).joinedload(Resume.candidate_skills).joinedload(CandidateSkill.skill),
+            joinedload(JobApplication.candidate).joinedload(CandidateProfile.user)
+        )
+        .filter(JobApplication.job_id == job.job_id)
     )
     if match_req.resume_ids:
-        query = query.filter(Resume.resume_id.in_(match_req.resume_ids))
-    else:
-        # Default to all default resumes
-        query = query.filter(Resume.is_default == True)
-        
-    resumes = query.all()
-    if not resumes:
-        raise HTTPException(status_code=400, detail="No resumes available for matching")
+        query = query.filter(JobApplication.resume_id.in_(match_req.resume_ids))
+
+    applications = query.all()
+    if not applications:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"No candidates have applied to '{job.job_title}' yet. AI screening can only be performed on submitted job applications."
+        )
 
     matcher = SmartCVMatcher(
         weight_sbert=match_req.weight_sbert,
@@ -137,7 +141,11 @@ def run_job_matching(
 
     scored_candidates = []
 
-    for resume in resumes:
+    for app in applications:
+        resume = app.resume
+        if not resume:
+            continue
+
         cand_skills_data = [
             {
                 "skill_id": cs.skill_id,
@@ -175,6 +183,7 @@ def run_job_matching(
         )
 
         scored_candidates.append({
+            "application": app,
             "resume": resume,
             "match_out": match_out,
             "matched_s": matched_s,
@@ -198,6 +207,7 @@ def run_job_matching(
 
     saved_records = []
     for rank_idx, item in enumerate(scored_candidates, 1):
+        app = item["application"]
         resume = item["resume"]
         mo = item["match_out"]
 
@@ -205,12 +215,16 @@ def run_job_matching(
             job_id=job.job_id,
             candidate_id=resume.candidate_id,
             resume_id=resume.resume_id,
+            application_id=app.application_id,
             rank_position=rank_idx,
             tfidf_score=mo["tfidf_score"],
             bert_score=mo["bert_score"],
             compatibility_score=mo["compatibility_score"],
             recommendation_status=mo["recommendation_status"]
         )
+
+        # Update application status to screened
+        app.status = "screened"
 
         # Add matched skills
         for ms in item["matched_s"]:
@@ -257,7 +271,7 @@ def run_job_matching(
         action_type="MATCHING_EXECUTED",
         entity_name="Job",
         entity_id=job.job_id,
-        description=f"Screened {len(resumes)} candidate resumes for Job #{job.job_id} '{job.job_title}'. Top candidate score: {saved_records[0].compatibility_score if saved_records else 0}%."
+        description=f"Screened {len(applications)} candidate applications for Job #{job.job_id} '{job.job_title}'. Top candidate score: {saved_records[0].compatibility_score if saved_records else 0}%."
     )
     db.add(log)
     db.commit()
@@ -271,6 +285,7 @@ def run_job_matching(
             joinedload(MatchResult.missing_skills).joinedload(MissingSkill.skill),
             joinedload(MatchResult.explanation_summary),
             joinedload(MatchResult.applicant_feedback),
+            joinedload(MatchResult.application),
         )
         .filter(MatchResult.job_id == job.job_id)
         .order_by(MatchResult.rank_position.asc())
@@ -299,6 +314,7 @@ def _match_query_options():
         joinedload(MatchResult.missing_skills).joinedload(MissingSkill.skill),
         joinedload(MatchResult.explanation_summary),
         joinedload(MatchResult.applicant_feedback),
+        joinedload(MatchResult.application),
     ]
 
 @router.get("/job/{job_id}", response_model=JobRankingSummary)

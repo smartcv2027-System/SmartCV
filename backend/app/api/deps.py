@@ -43,3 +43,24 @@ def require_roles(allowed_roles: List[UserRole]):
             )
         return current_user
     return role_checker
+
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=False)
+
+def get_current_user_optional(
+    db: Session = Depends(get_db),
+    token: Optional[str] = Depends(oauth2_scheme_optional)
+) -> Optional[User]:
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id_str: str = payload.get("sub")
+        if user_id_str is None:
+            return None
+        user_id = int(user_id_str)
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if user and user.status == "active":
+            return user
+    except Exception:
+        return None
+    return None

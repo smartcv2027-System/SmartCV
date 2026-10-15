@@ -3,13 +3,13 @@ import sys
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from app.core.config import settings
-from app.db.database import SessionLocal, engine, Base
+from app.db.database import SessionLocal, engine, Base, ensure_schema
 from app.core.security import get_password_hash
 from app.models.models import (
     User, UserRole, CandidateProfile, UploadedFile, Resume, 
     Job, Skill, JobSkill, CandidateSkill, MatchResult, 
     MatchedSkill, MissingSkill, ExplanationSummary, 
-    ApplicantFeedback, AuditLog
+    ApplicantFeedback, AuditLog, JobApplication
 )
 from app.ai.taxonomy import DEFAULT_SKILLS_TAXONOMY, extract_skills_from_text
 from app.ai.matcher import SmartCVMatcher
@@ -26,7 +26,7 @@ def seed_database(force_reseed: bool = False):
     6. Physical Resume Files stored in settings.UPLOAD_DIR
     """
     print("Ensuring database schema is up-to-date...")
-    Base.metadata.create_all(bind=engine)
+    ensure_schema()
     db: Session = SessionLocal()
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
@@ -52,6 +52,7 @@ def seed_database(force_reseed: bool = False):
         db.query(MissingSkill).delete()
         db.query(MatchedSkill).delete()
         db.query(MatchResult).delete()
+        db.query(JobApplication).delete()
         db.query(CandidateSkill).delete()
         db.query(JobSkill).delete()
         db.query(Resume).delete()
@@ -62,6 +63,19 @@ def seed_database(force_reseed: bool = False):
         db.commit()
         if settings.is_sqlite:
             db.execute(text("PRAGMA foreign_keys = ON;"))
+            db.commit()
+        else:
+            tables = [
+                "audit_logs", "applicant_feedback", "explanation_summaries",
+                "missing_skills", "matched_skills", "match_results",
+                "job_applications", "candidate_skills", "job_skills",
+                "resumes", "jobs", "uploaded_files", "candidate_profiles", "users"
+            ]
+            for tbl in tables:
+                try:
+                    db.execute(text(f"ALTER TABLE {tbl} AUTO_INCREMENT = 1;"))
+                except Exception:
+                    pass
             db.commit()
 
 
@@ -943,9 +957,55 @@ REQUIREMENTS & QUALIFICATIONS:
         seeded_jobs.append(job)
 
     # ------------------------------------------------------------------------
-    # 5. Pre-Compute AI Matching Results & XAI Explanations
+    # 5. Seed Job Applications
     # ------------------------------------------------------------------------
-    print("Pre-calculating AI compatibility scores and XAI explanations for all jobs...")
+    print("Seeding candidate job applications across postings...")
+    cand_by_user = {}
+    for prof, resume in seeded_resumes:
+        user_obj = db.query(User).filter(User.user_id == prof.user_id).first()
+        if user_obj:
+            cand_by_user[user_obj.username] = (prof, resume)
+
+    APPLICATIONS_MAPPING = [
+        # Job 0: Junior AI & Machine Learning Engineer
+        (0, ["fahad_applicant", "abdulaziz_ghamdi", "halah_zahrani", "bayan_shahrani", "khaled_garni"]),
+        # Job 1: Cloud & DevOps Infrastructure Engineer
+        (1, ["saad_dossary", "tariq_omari", "fahad_applicant", "khaled_garni"]),
+        # Job 2: Information Security & SOC Analyst
+        (2, ["reem_ghamdi", "yazeed_mutairi", "khaled_garni"]),
+        # Job 3: Data Engineer & Business Intelligence Specialist
+        (3, ["omar_shehri", "bayan_shahrani", "fahad_applicant", "fatima_sulaiman"]),
+        # Job 4: Full-Stack Software Engineer
+        (4, ["nouf_otaibi", "rakan_harbi", "fahad_applicant", "mona_asiri"]),
+        # Job 5: Additional Enterprise Backend role if present
+        (5, ["rakan_harbi", "nouf_otaibi", "fahad_applicant"]),
+    ]
+
+    for job_idx, usernames in APPLICATIONS_MAPPING:
+        if job_idx < len(seeded_jobs):
+            target_job = seeded_jobs[job_idx]
+            for uname in usernames:
+                if uname in cand_by_user:
+                    prof, resume = cand_by_user[uname]
+                    existing_app = db.query(JobApplication).filter(
+                        JobApplication.job_id == target_job.job_id,
+                        JobApplication.candidate_id == prof.candidate_id
+                    ).first()
+                    if not existing_app:
+                        app_rec = JobApplication(
+                            job_id=target_job.job_id,
+                            candidate_id=prof.candidate_id,
+                            resume_id=resume.resume_id,
+                            status="applied",
+                            cover_letter=f"Excited to apply for {target_job.job_title} via King Khalid University SmartCV portal."
+                        )
+                        db.add(app_rec)
+    db.commit()
+
+    # ------------------------------------------------------------------------
+    # 6. Pre-Compute AI Matching Results & XAI Explanations for SUBMITTED APPLICATIONS ONLY
+    # ------------------------------------------------------------------------
+    print("Pre-calculating AI compatibility scores and XAI explanations for submitted job applications...")
     matcher = SmartCVMatcher()
     explainer = XAIExplainer()
 
@@ -962,8 +1022,15 @@ REQUIREMENTS & QUALIFICATIONS:
             for js in job.job_skills
         ]
 
-        # Match each candidate resume
-        for prof, resume in seeded_resumes:
+        # Match ONLY candidates who submitted an application for this specific job
+        job_apps = db.query(JobApplication).filter(JobApplication.job_id == job.job_id).all()
+
+        for app_rec in job_apps:
+            resume = db.query(Resume).filter(Resume.resume_id == app_rec.resume_id).first()
+            prof = db.query(CandidateProfile).filter(CandidateProfile.candidate_id == app_rec.candidate_id).first()
+            if not resume or not prof:
+                continue
+
             cand_skills_data = [
                 {
                     "skill_id": cs.skill_id,
@@ -1003,6 +1070,7 @@ REQUIREMENTS & QUALIFICATIONS:
                     job_id=job.job_id,
                     candidate_id=prof.candidate_id,
                     resume_id=resume.resume_id,
+                    application_id=app_rec.application_id,
                     tfidf_score=match_out["tfidf_score"],
                     bert_score=match_out["bert_score"],
                     compatibility_score=match_out["compatibility_score"],
@@ -1012,11 +1080,14 @@ REQUIREMENTS & QUALIFICATIONS:
                 db.commit()
                 db.refresh(mr)
             else:
+                mr.application_id = app_rec.application_id
                 mr.tfidf_score = match_out["tfidf_score"]
                 mr.bert_score = match_out["bert_score"]
                 mr.compatibility_score = match_out["compatibility_score"]
                 mr.recommendation_status = match_out["recommendation_status"]
                 db.commit()
+
+            app_rec.status = "screened"
 
             # Clean and repopulate matched and missing skills
             db.query(MatchedSkill).filter(MatchedSkill.result_id == mr.result_id).delete()

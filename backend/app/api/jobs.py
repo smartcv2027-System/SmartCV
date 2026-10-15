@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import Job, Skill, JobSkill, User, UserRole, AuditLog, UploadedFile
 from app.schemas.schemas import JobCreate, JobResponse, JobSkillResponse, JobFileParseResponse
-from app.api.deps import get_current_user, require_roles
+from app.api.deps import get_current_user, require_roles, get_current_user_optional
 from app.ai.taxonomy import extract_skills_from_text
 from app.core.file_utils import (
     validate_and_read_upload,
@@ -17,7 +17,7 @@ from app.core.file_utils import (
 
 router = APIRouter()
 
-def _format_job_response(job: Job) -> JobResponse:
+def _format_job_response(job: Job, current_candidate_id: Optional[int] = None) -> JobResponse:
     skills_resp = []
     for js in job.job_skills:
         skills_resp.append(JobSkillResponse(
@@ -29,7 +29,12 @@ def _format_job_response(job: Job) -> JobResponse:
             weight=js.weight,
             minimum_level=js.minimum_level
         ))
-    
+
+    app_count = len(job.applications) if job.applications else 0
+    applied = False
+    if current_candidate_id and job.applications:
+        applied = any(a.candidate_id == current_candidate_id for a in job.applications)
+
     return JobResponse(
         job_id=job.job_id,
         posted_by=job.posted_by,
@@ -44,7 +49,9 @@ def _format_job_response(job: Job) -> JobResponse:
         raw_job_text=job.raw_job_text,
         status=job.status,
         created_at=job.created_at,
-        skills=skills_resp
+        skills=skills_resp,
+        applications_count=app_count,
+        has_applied=applied
     )
 
 def _infer_job_title(filename: str, extracted_text: str) -> str:
@@ -60,36 +67,45 @@ def _infer_job_title(filename: str, extracted_text: str) -> str:
 @router.get("/", response_model=List[JobResponse])
 def get_jobs(
     status_filter: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
 ):
     from sqlalchemy.orm import joinedload
     query = (
         db.query(Job)
         .options(
             joinedload(Job.file),
-            joinedload(Job.job_skills).joinedload(JobSkill.skill)
+            joinedload(Job.job_skills).joinedload(JobSkill.skill),
+            joinedload(Job.applications)
         )
     )
     if status_filter:
         query = query.filter(Job.status == status_filter)
     jobs = query.order_by(Job.created_at.desc()).all()
-    return [_format_job_response(job) for job in jobs]
+    cand_id = current_user.candidate_profile.candidate_id if current_user and current_user.candidate_profile else None
+    return [_format_job_response(job, cand_id) for job in jobs]
 
 @router.get("/{job_id}", response_model=JobResponse)
-def get_job(job_id: int, db: Session = Depends(get_db)):
+def get_job(
+    job_id: int, 
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional)
+):
     from sqlalchemy.orm import joinedload
     job = (
         db.query(Job)
         .options(
             joinedload(Job.file),
-            joinedload(Job.job_skills).joinedload(JobSkill.skill)
+            joinedload(Job.job_skills).joinedload(JobSkill.skill),
+            joinedload(Job.applications)
         )
         .filter(Job.job_id == job_id)
         .first()
     )
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    return _format_job_response(job)
+    cand_id = current_user.candidate_profile.candidate_id if current_user and current_user.candidate_profile else None
+    return _format_job_response(job, cand_id)
 
 @router.post("/", response_model=JobResponse)
 def create_job(

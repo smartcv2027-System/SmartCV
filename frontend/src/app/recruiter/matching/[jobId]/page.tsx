@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api, Job, JobRankingSummary, MatchResultDetail } from "@/lib/api";
+import { api, Job, JobRankingSummary, MatchResultDetail, JobApplication } from "@/lib/api";
 import { ScoreGauge } from "@/components/ScoreGauge";
 import { ExplanationModal } from "@/components/ExplanationModal";
 import { 
@@ -17,7 +17,9 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
-  RotateCcw
+  RotateCcw,
+  AlertCircle,
+  Users
 } from "lucide-react";
 import { useConfirm } from "@/lib/confirm-context";
 import { useLanguage, format } from "@/lib/i18n";
@@ -30,6 +32,7 @@ export default function CandidateRankingPage() {
 
   const [job, setJob] = useState<Job | null>(null);
   const [rankingData, setRankingData] = useState<JobRankingSummary | null>(null);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [selectedResult, setSelectedResult] = useState<MatchResultDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [screening, setScreening] = useState(false);
@@ -49,12 +52,14 @@ export default function CandidateRankingPage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [jobData, rankData] = await Promise.all([
+      const [jobData, rankData, appsData] = await Promise.all([
         api.getJob(jobId),
-        api.getJobRanking(jobId)
+        api.getJobRanking(jobId).catch(() => null),
+        api.getJobApplications(jobId).catch(() => [])
       ]);
       setJob(jobData);
       setRankingData(rankData);
+      setApplications(appsData);
       if (rankData?.weights_used) {
         setWeightSbert(Math.round(rankData.weights_used.sbert * 100));
         setWeightTfidf(Math.round(rankData.weights_used.tfidf * 100));
@@ -133,8 +138,16 @@ export default function CandidateRankingPage() {
                 {job?.status}
               </span>
             </div>
-            <p className="text-xs text-slate-500">
-              {job?.location} • {job?.employment_type} • {format(t.matching.targetSkillsCount, { count: job?.skills.length || 0 })}
+            <p className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
+              <span>{job?.location}</span>
+              <span>&bull;</span>
+              <span>{job?.employment_type}</span>
+              <span>&bull;</span>
+              <span>{format(t.matching.targetSkillsCount, { count: job?.skills.length || 0 })}</span>
+              <span>&bull;</span>
+              <span className="font-bold text-brand-700 bg-brand-50 px-2.5 py-0.5 rounded-full border border-brand-200">
+                {format(t.matching.totalApplicantsCount, { count: applications.length })}
+              </span>
             </p>
           </div>
 
@@ -154,14 +167,22 @@ export default function CandidateRankingPage() {
 
             <button
               onClick={() => handleRunMatching()}
-              disabled={screening}
-              className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-500/20 transition-all shrink-0"
+              disabled={screening || applications.length === 0}
+              title={applications.length === 0 ? t.matching.noApplicantsYet : undefined}
+              className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-brand-500/20 transition-all shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-4 h-4 ${screening ? "animate-spin" : ""}`} />
               {screening ? t.matching.evaluatingResumes : t.matching.reCalculateAction}
             </button>
           </div>
         </div>
+
+        {applications.length === 0 && (
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5 font-medium animate-fadeIn">
+            <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+            <span>{t.matching.noApplicantsYet}</span>
+          </div>
+        )}
       </div>
 
       {/* Dynamic Recruiter Weight Tuning Panel */}
@@ -358,13 +379,17 @@ export default function CandidateRankingPage() {
         {(!rankingData?.results || rankingData.results.length === 0) ? (
           <div className="text-center py-12 space-y-3">
             <Layers className="w-8 h-8 text-slate-300 mx-auto" />
-            <p className="text-xs text-slate-500 font-medium">{t.matching.noCandidatesYet}</p>
-            <button
-              onClick={() => handleRunMatching()}
-              className="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold"
-            >
-              {t.matching.runScreeningNow}
-            </button>
+            <p className="text-xs text-slate-500 font-medium">
+              {applications.length === 0 ? t.matching.noApplicantsYet : t.matching.noCandidatesYet}
+            </p>
+            {applications.length > 0 && (
+              <button
+                onClick={() => handleRunMatching()}
+                className="px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-bold cursor-pointer"
+              >
+                {t.matching.runScreeningNow}
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

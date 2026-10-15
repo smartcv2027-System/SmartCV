@@ -127,6 +127,8 @@ class JobResponse(BaseModel):
     status: str
     created_at: datetime
     skills: List[JobSkillResponse] = []
+    applications_count: Optional[int] = 0
+    has_applied: Optional[bool] = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -137,6 +139,28 @@ class JobFileParseResponse(BaseModel):
     file_name: str
     file_size_kb: int
     checksum: Optional[str] = None
+
+# --- Job Application Schemas ---
+class JobApplicationCreate(BaseModel):
+    resume_id: Optional[int] = None
+    cover_letter: Optional[str] = None
+
+class JobApplicationResponse(BaseModel):
+    application_id: int
+    job_id: int
+    job_title: str
+    candidate_id: int
+    candidate_name: str
+    resume_id: int
+    resume_title: Optional[str] = None
+    status: str
+    cover_letter: Optional[str] = None
+    applied_at: datetime
+    compatibility_score: Optional[float] = None
+    recommendation_status: Optional[str] = None
+    result_id: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
 
 # --- Candidate Skills & Resume Schemas ---
 class CandidateSkillResponse(BaseModel):
