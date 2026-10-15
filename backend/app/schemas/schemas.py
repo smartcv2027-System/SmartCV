@@ -145,6 +145,9 @@ class JobApplicationCreate(BaseModel):
     resume_id: Optional[int] = None
     cover_letter: Optional[str] = None
 
+class JobApplicationStatusUpdate(BaseModel):
+    status: str  # 'applied', 'screened', 'reviewed', 'shortlisted', 'rejected'
+
 class JobApplicationResponse(BaseModel):
     application_id: int
     job_id: int
@@ -224,6 +227,8 @@ class MatchResultDetail(BaseModel):
     candidate_id: int
     candidate_name: str
     resume_id: int
+    application_id: Optional[int] = None
+    application_status: Optional[str] = None
     rank_position: Optional[int] = None
     tfidf_score: float
     bert_score: float

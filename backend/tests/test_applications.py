@@ -142,3 +142,91 @@ def test_candidate_without_cv_cannot_apply():
     resp = client.post("/api/v1/applications/jobs/1/apply", headers=headers)
     assert resp.status_code == 400
     assert "upload and parse a cv" in resp.json()["detail"].lower()
+
+
+def test_recruiter_application_status_lifecycle_and_rbac(auth_tokens):
+    """
+    Verifies that:
+    1. A job poster (recruiter) can update applicant status to 'shortlisted', 'rejected', or 'reviewed'.
+    2. The applicant can see this updated status in their 'my applications' endpoint.
+    3. An unauthorized recruiter (not job poster) is forbidden (403) from updating status.
+    4. An applicant is forbidden (403) from updating status.
+    5. An invalid status value returns 400 Bad Request.
+    6. An admin can also update application status.
+    """
+    sarah_headers = {"Authorization": f"Bearer {auth_tokens['recruiter_sarah']}"}
+    fahad_headers = {"Authorization": f"Bearer {auth_tokens['applicant_fahad']}"}
+    admin_headers = {"Authorization": f"Bearer {auth_tokens['admin_laila']}"}
+    
+    # Register an authentic second recruiter to verify ownership isolation
+    other_uid = uuid.uuid4().hex[:6]
+    client.post("/api/v1/auth/register", json={
+        "username": f"rec_{other_uid}",
+        "full_name": "Other Recruiter",
+        "email": f"rec_{other_uid}@tech.sa",
+        "password": "Password123!",
+        "role_type": "recruiter"
+    })
+    other_token = client.post("/api/v1/auth/login-json", json={
+        "username": f"rec_{other_uid}",
+        "password": "Password123!"
+    }).json()["access_token"]
+    other_recruiter_headers = {"Authorization": f"Bearer {other_token}"}
+
+    # Step 1: Sarah posts a job
+    job_resp = client.post("/api/v1/jobs/", json={
+        "job_title": "Full-Stack Python Engineer Lifecycle Test",
+        "raw_job_text": "Requirements: Python, FastAPI, Next.js, SQL.",
+        "skills": [
+            {"skill_name": "Python", "requirement_type": "required", "weight": 1.0}
+        ]
+    }, headers=sarah_headers)
+    assert job_resp.status_code == 200
+    job_id = job_resp.json()["job_id"]
+
+    try:
+        # Step 2: Fahad applies
+        apply_resp = client.post(f"/api/v1/applications/jobs/{job_id}/apply", headers=fahad_headers)
+        assert apply_resp.status_code == 201
+        app_id = apply_resp.json()["application_id"]
+        assert apply_resp.json()["status"] == "applied"
+
+        # Step 3: Unauthorized user (Fahad himself) cannot change status -> 403 Forbidden
+        cant_update_resp = client.patch(f"/api/v1/applications/{app_id}/status", json={"status": "shortlisted"}, headers=fahad_headers)
+        assert cant_update_resp.status_code == 403
+
+        # Step 4: Unauthorized recruiter (not job poster) cannot change status -> 403 Forbidden
+        other_update_resp = client.patch(f"/api/v1/applications/{app_id}/status", json={"status": "shortlisted"}, headers=other_recruiter_headers)
+        assert other_update_resp.status_code == 403
+        assert "forbidden" in other_update_resp.json()["detail"].lower()
+
+        # Step 5: Invalid status returns 400 Bad Request
+        invalid_resp = client.patch(f"/api/v1/applications/{app_id}/status", json={"status": "non_existent_status"}, headers=sarah_headers)
+        assert invalid_resp.status_code == 400
+        assert "invalid application status" in invalid_resp.json()["detail"].lower()
+
+        # Step 6: Sarah shortlists Fahad -> 200 OK
+        shortlist_resp = client.patch(f"/api/v1/applications/{app_id}/status", json={"status": "shortlisted"}, headers=sarah_headers)
+        assert shortlist_resp.status_code == 200
+        assert shortlist_resp.json()["status"] == "shortlisted"
+
+        # Step 7: Fahad sees the new status in his dashboard endpoint
+        my_apps_resp = client.get("/api/v1/applications/my", headers=fahad_headers)
+        assert my_apps_resp.status_code == 200
+        fahad_app = next((a for a in my_apps_resp.json() if a["application_id"] == app_id), None)
+        assert fahad_app is not None
+        assert fahad_app["status"] == "shortlisted"
+
+        # Step 8: Sarah changes status to rejected -> 200 OK
+        reject_resp = client.patch(f"/api/v1/applications/{app_id}/status", json={"status": "rejected"}, headers=sarah_headers)
+        assert reject_resp.status_code == 200
+        assert reject_resp.json()["status"] == "rejected"
+
+        # Step 9: Admin can also update application status -> 200 OK
+        admin_update_resp = client.patch(f"/api/v1/applications/{app_id}/status", json={"status": "reviewed"}, headers=admin_headers)
+        assert admin_update_resp.status_code == 200
+        assert admin_update_resp.json()["status"] == "reviewed"
+    finally:
+        # Step 10: Clean up test job
+        client.delete(f"/api/v1/jobs/{job_id}", headers=sarah_headers)
+

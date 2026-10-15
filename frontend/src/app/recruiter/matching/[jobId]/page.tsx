@@ -6,20 +6,23 @@ import Link from "next/link";
 import { api, Job, JobRankingSummary, MatchResultDetail, JobApplication } from "@/lib/api";
 import { ScoreGauge } from "@/components/ScoreGauge";
 import { ExplanationModal } from "@/components/ExplanationModal";
-import { 
-  Brain, 
-  Sparkles, 
-  ArrowLeft, 
-  RefreshCw, 
-  Sliders, 
-  FileText, 
-  Layers, 
+import {
+  Brain,
+  Sparkles,
+  ArrowLeft,
+  RefreshCw,
+  Sliders,
+  FileText,
+  Layers,
   TrendingUp,
   ChevronDown,
   ChevronUp,
   RotateCcw,
   AlertCircle,
-  Users
+  Users,
+  Star,
+  XCircle,
+  CheckCircle2
 } from "lucide-react";
 import { useConfirm } from "@/lib/confirm-context";
 import { useLanguage, format } from "@/lib/i18n";
@@ -107,6 +110,36 @@ export default function CandidateRankingPage() {
     applyPreset(50, 20, 30);
   };
 
+  const handleUpdateStatus = async (
+    result: MatchResultDetail,
+    newStatus: "applied" | "screened" | "reviewed" | "shortlisted" | "rejected"
+  ) => {
+    if (!result.application_id) return;
+    try {
+      await api.updateApplicationStatus(result.application_id, newStatus);
+      setRankingData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          results: prev.results.map((r) =>
+            r.result_id === result.result_id ? { ...r, application_status: newStatus } : r
+          )
+        };
+      });
+      setApplications((prev) =>
+        prev.map((a) =>
+          a.application_id === result.application_id ? { ...a, status: newStatus } : a
+        )
+      );
+    } catch (err: any) {
+      await showAlert({
+        title: t.common.error,
+        message: err.message || t.common.unexpectedError,
+        variant: "danger"
+      });
+    }
+  };
+
   const totalWeight = weightSbert + weightTfidf + weightSkills;
 
   if (loading) {
@@ -120,7 +153,7 @@ export default function CandidateRankingPage() {
 
   return (
     <div className="space-y-8">
-      
+
       {/* Back Link & Job Header */}
       <div className="space-y-4">
         <Link
@@ -154,11 +187,10 @@ export default function CandidateRankingPage() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowWeightTuner(!showWeightTuner)}
-              className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-2 shadow-sm transition-all ${
-                showWeightTuner 
-                  ? "bg-slate-900 text-white border-slate-900" 
+              className={`px-4 py-2.5 rounded-xl border text-xs font-bold flex items-center gap-2 shadow-sm transition-all ${showWeightTuner
+                  ? "bg-slate-900 text-white border-slate-900"
                   : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-              }`}
+                }`}
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>{t.matching.weightTuningBtn}</span>
@@ -238,7 +270,7 @@ export default function CandidateRankingPage() {
 
           {/* Interactive Sliders Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-            
+
             {/* SBERT Slider */}
             <div className="space-y-2 p-4 rounded-xl bg-white/5 border border-white/10">
               <div className="flex justify-between items-center text-xs">
@@ -307,8 +339,8 @@ export default function CandidateRankingPage() {
               <div className="flex justify-between text-[11px] text-slate-300 font-bold">
                 <span>{t.matching.normalizedRatio}</span>
                 <span dir="ltr">
-                  SBERT: {Math.round((weightSbert / Math.max(1, totalWeight)) * 100)}% • 
-                  TF-IDF: {Math.round((weightTfidf / Math.max(1, totalWeight)) * 100)}% • 
+                  SBERT: {Math.round((weightSbert / Math.max(1, totalWeight)) * 100)}% •
+                  TF-IDF: {Math.round((weightTfidf / Math.max(1, totalWeight)) * 100)}% •
                   Skills: {Math.round((weightSkills / Math.max(1, totalWeight)) * 100)}%
                 </span>
               </div>
@@ -339,11 +371,10 @@ export default function CandidateRankingPage() {
             {job.skills.map((s) => (
               <span
                 key={s.job_skill_id}
-                className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] border ${
-                  s.requirement_type === "required"
+                className={`px-2.5 py-1 rounded-lg font-semibold text-[11px] border ${s.requirement_type === "required"
                     ? "bg-slate-900 text-white border-slate-900"
                     : "bg-brand-50 text-brand-700 border-brand-200"
-                }`}
+                  }`}
               >
                 {s.skill_name} <span className="opacity-70 text-[9px]">({s.requirement_type})</span>
               </span>
@@ -403,6 +434,7 @@ export default function CandidateRankingPage() {
                   <th className="py-3 px-3 text-start w-px whitespace-nowrap">{t.matching.tfidfCol}</th>
                   <th className="py-3 px-3 text-start min-w-[180px]">{t.matching.matchedSkillsCol}</th>
                   <th className="py-3 px-3 text-start min-w-[180px]">{t.matching.missingSkillsCol}</th>
+                  <th className="py-3 px-3 text-start min-w-[150px]">{t.matching.decisionCol}</th>
                   <th className="py-3 px-3 text-end w-px whitespace-nowrap">{t.common.actions}</th>
                 </tr>
               </thead>
@@ -410,13 +442,12 @@ export default function CandidateRankingPage() {
                 {rankingData.results.map((res) => (
                   <tr key={res.result_id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-4 px-3 font-extrabold text-slate-900 w-px whitespace-nowrap">
-                      <span className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-black ${
-                        res.rank_position === 1
+                      <span className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-black ${res.rank_position === 1
                           ? "bg-amber-100 text-amber-800 ring-2 ring-amber-300"
                           : res.rank_position === 2
-                          ? "bg-slate-200 text-slate-800"
-                          : "bg-slate-100 text-slate-600"
-                      }`}>
+                            ? "bg-slate-200 text-slate-800"
+                            : "bg-slate-100 text-slate-600"
+                        }`}>
                         {res.rank_position || 1}
                       </span>
                     </td>
@@ -439,7 +470,7 @@ export default function CandidateRankingPage() {
                       {res.matched_skills.length === 0 ? (
                         <span className="text-slate-400 text-xs">—</span>
                       ) : (
-                        <div 
+                        <div
                           className="flex flex-wrap items-center gap-1"
                           title={res.matched_skills.map((s) => s.skill_name).join(", ")}
                         >
@@ -460,7 +491,7 @@ export default function CandidateRankingPage() {
                       {res.missing_skills.length === 0 ? (
                         <span className="text-emerald-600 font-bold text-xs">—</span>
                       ) : (
-                        <div 
+                        <div
                           className="flex flex-wrap items-center gap-1"
                           title={res.missing_skills.map((s) => s.skill_name).join(", ")}
                         >
@@ -476,6 +507,64 @@ export default function CandidateRankingPage() {
                           )}
                         </div>
                       )}
+                    </td>
+                    <td className="py-4 px-3 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        {res.application_status === "shortlisted" ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 inline-flex items-center gap-1">
+                            <Star className="w-3 h-3 text-purple-500 fill-purple-500" />
+                            {t.applicant.statusShortlisted}
+                          </span>
+                        ) : res.application_status === "rejected" ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1">
+                            <XCircle className="w-3 h-3 text-rose-500" />
+                            {t.applicant.statusRejected}
+                          </span>
+                        ) : res.application_status === "reviewed" ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-200 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-sky-500" />
+                            {t.applicant.statusReviewed}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                            {t.applicant.statusScreened}
+                          </span>
+                        )}
+
+                        {/* Quick Decision Action Buttons */}
+                        {res.application_id && (
+                          <div className="flex items-center gap-0.5 ms-1">
+                            {res.application_status !== "shortlisted" && (
+                              <button
+                                onClick={() => handleUpdateStatus(res, "shortlisted")}
+                                title={t.matching.shortlistBtn}
+                                className="p-1 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors cursor-pointer"
+                              >
+                                <Star className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {res.application_status !== "rejected" && (
+                              <button
+                                onClick={() => handleUpdateStatus(res, "rejected")}
+                                title={t.matching.rejectBtn}
+                                className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                              >
+                                <XCircle className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            {(res.application_status === "shortlisted" || res.application_status === "rejected") && (
+                              <button
+                                onClick={() => handleUpdateStatus(res, "screened")}
+                                title={t.matching.resetStatusBtn}
+                                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                              >
+                                <RotateCcw className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-3 text-end w-px whitespace-nowrap">
                       <button

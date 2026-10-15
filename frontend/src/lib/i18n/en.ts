@@ -272,6 +272,11 @@ export const en = {
     noApplicantsYet: "No candidates have applied to this position yet. AI screening can only be performed on submitted job applications.",
     totalApplicantsCount: "Total Applications: {count}",
     appliedAtCol: "Applied Date",
+    decisionCol: "Decision / Status",
+    shortlistBtn: "Shortlist",
+    rejectBtn: "Reject",
+    resetStatusBtn: "Reset to Screened",
+    statusUpdatedSuccess: "Application status updated to {status}!",
   },
 
   applicant: {

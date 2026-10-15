@@ -25,7 +25,9 @@ import {
   MapPin,
   Clock,
   Send,
-  Layers
+  Layers,
+  Star,
+  XCircle
 } from "lucide-react";
 
 export default function ApplicantPortalPage() {
@@ -42,6 +44,47 @@ export default function ApplicantPortalPage() {
   const [reparsing, setReparsing] = useState(false);
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
   const [uploadStatus, setUploadStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const renderStatusBadge = (status: string, hasScore: boolean) => {
+    if (status === "shortlisted") {
+      return (
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-purple-50 text-purple-700 border-purple-200 inline-flex items-center gap-1">
+          <Star className="w-2.5 h-2.5 fill-purple-600 text-purple-600" />
+          {t.applicant.statusShortlisted}
+        </span>
+      );
+    }
+    if (status === "rejected") {
+      return (
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-rose-50 text-rose-700 border-rose-200 inline-flex items-center gap-1">
+          <XCircle className="w-2.5 h-2.5 text-rose-600" />
+          {t.applicant.statusRejected}
+        </span>
+      );
+    }
+    if (status === "reviewed") {
+      return (
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-sky-50 text-sky-700 border-sky-200 inline-flex items-center gap-1">
+          <CheckCircle2 className="w-2.5 h-2.5 text-sky-600" />
+          {t.applicant.statusReviewed}
+        </span>
+      );
+    }
+    if (status === "screened" || hasScore) {
+      return (
+        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-emerald-50 text-emerald-700 border-emerald-200 inline-flex items-center gap-1">
+          <Sparkles className="w-2.5 h-2.5 text-emerald-600" />
+          {t.applicant.statusScreened}
+        </span>
+      );
+    }
+    return (
+      <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200 inline-flex items-center gap-1">
+        <Clock className="w-2.5 h-2.5 text-amber-600" />
+        {t.applicant.statusApplied}
+      </span>
+    );
+  };
 
   useEffect(() => {
     loadData();
@@ -434,13 +477,7 @@ export default function ApplicantPortalPage() {
                         <div>
                           <div className="flex items-center gap-2">
                             <h4 className="text-sm font-extrabold text-slate-900">{app.job_title}</h4>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                              app.status === "screened" || score !== undefined
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                            }`}>
-                              {app.status === "screened" || score !== undefined ? t.applicant.statusScreened : t.applicant.statusApplied}
-                            </span>
+                            {renderStatusBadge(app.status, score !== undefined)}
                           </div>
                           <p className="text-[11px] text-slate-400 mt-0.5">
                             {format(t.applicant.appliedAtCol, { date: app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "" })} &bull; {format(t.applicant.applicationIdBadge, { id: app.application_id })}
@@ -492,7 +529,13 @@ export default function ApplicantPortalPage() {
                         </Link>
                       ) : (
                         <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                          {t.applicant.statusApplied}
+                          {app.status === "shortlisted"
+                            ? t.applicant.statusShortlisted
+                            : app.status === "rejected"
+                            ? t.applicant.statusRejected
+                            : app.status === "reviewed"
+                            ? t.applicant.statusReviewed
+                            : t.applicant.statusApplied}
                         </span>
                       )}
                     </div>

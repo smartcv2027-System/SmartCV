@@ -63,6 +63,8 @@ def _build_match_result_detail(res: MatchResult) -> MatchResultDetail:
             generated_at=res.applicant_feedback.generated_at
         )
 
+    app_status = res.application.status if res.application else None
+
     return MatchResultDetail(
         result_id=res.result_id,
         job_id=res.job_id,
@@ -70,6 +72,8 @@ def _build_match_result_detail(res: MatchResult) -> MatchResultDetail:
         candidate_id=res.candidate_id,
         candidate_name=cand_name,
         resume_id=res.resume_id,
+        application_id=res.application_id,
+        application_status=app_status,
         rank_position=res.rank_position,
         tfidf_score=res.tfidf_score,
         bert_score=res.bert_score,

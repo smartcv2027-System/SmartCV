@@ -150,6 +150,8 @@ export interface MatchResultDetail {
   candidate_id: number;
   candidate_name: string;
   resume_id: number;
+  application_id?: number;
+  application_status?: string;
   rank_position?: number;
   tfidf_score: number;
   bert_score: number;
@@ -398,6 +400,22 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Failed to withdraw application");
+    }
+    return res.json();
+  },
+
+  async updateApplicationStatus(applicationId: number, status: string): Promise<JobApplication> {
+    const res = await fetch(`${API_BASE}/applications/${applicationId}/status`, {
+      method: "PATCH",
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ status })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to update application status");
     }
     return res.json();
   },

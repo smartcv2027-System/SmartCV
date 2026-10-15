@@ -6,7 +6,7 @@ from app.db.database import get_db
 from app.models.models import (
     JobApplication, Job, CandidateProfile, Resume, User, UserRole, AuditLog, MatchResult
 )
-from app.schemas.schemas import JobApplicationCreate, JobApplicationResponse
+from app.schemas.schemas import JobApplicationCreate, JobApplicationResponse, JobApplicationStatusUpdate
 from app.api.deps import get_current_user, require_roles
 
 router = APIRouter()
@@ -261,3 +261,66 @@ def withdraw_application(
     db.commit()
 
     return {"message": "Application withdrawn successfully."}
+
+VALID_APPLICATION_STATUSES = {"applied", "screened", "reviewed", "shortlisted", "rejected"}
+
+@router.patch("/{application_id}/status", response_model=JobApplicationResponse)
+def update_application_status(
+    application_id: int,
+    status_in: JobApplicationStatusUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.RECRUITER, UserRole.ADMIN]))
+):
+    """
+    Updates the candidate application lifecycle status (e.g., 'reviewed', 'shortlisted', 'rejected').
+    Authorized for the recruiter who created the job opening, or an administrator.
+    """
+    target_status = status_in.status.lower().strip()
+    if target_status not in VALID_APPLICATION_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid application status '{status_in.status}'. Allowed statuses: {sorted(list(VALID_APPLICATION_STATUSES))}."
+        )
+
+    app = db.query(JobApplication).filter(JobApplication.application_id == application_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found.")
+
+    # Authorization check: only the job poster or admin can update status
+    if current_user.role_type == UserRole.RECRUITER and app.job and app.job.posted_by != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You can only update application statuses for job postings that you created."
+        )
+
+    old_status = app.status
+    app.status = target_status
+    app.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(app)
+
+    # Audit log
+    job_title = app.job.job_title if app.job else f"Job #{app.job_id}"
+    cand_name = app.candidate.user.full_name if app.candidate and app.candidate.user else f"Candidate #{app.candidate_id}"
+    log = AuditLog(
+        user_id=current_user.user_id,
+        action_type="JOB_APPLICATION_STATUS_UPDATED",
+        entity_name="JobApplication",
+        entity_id=application_id,
+        description=f"Status for {cand_name}'s application to '{job_title}' updated from '{old_status}' to '{target_status}' by {current_user.full_name}."
+    )
+    db.add(log)
+    db.commit()
+
+    reloaded = (
+        db.query(JobApplication)
+        .options(
+            joinedload(JobApplication.job),
+            joinedload(JobApplication.candidate).joinedload(CandidateProfile.user),
+            joinedload(JobApplication.resume),
+            joinedload(JobApplication.match_result)
+        )
+        .filter(JobApplication.application_id == application_id)
+        .first()
+    )
+    return _format_application_response(reloaded)

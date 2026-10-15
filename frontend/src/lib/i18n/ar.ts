@@ -274,6 +274,11 @@ export const ar: Translations = {
     noApplicantsYet: "لم يقم أي مرشح بالتقديم على هذه الوظيفة بعد. يقتصر الفرز الذكي على طلبات التوظيف المقدمة فقط.",
     totalApplicantsCount: "إجمالي المتقدمين: {count}",
     appliedAtCol: "تاريخ التقديم",
+    decisionCol: "القرار / الحالة",
+    shortlistBtn: "ترشيح للمقابلة",
+    rejectBtn: "استبعاد",
+    resetStatusBtn: "إعادة للفرز",
+    statusUpdatedSuccess: "تم تحديث حالة الطلب إلى {status} بنجاح!",
   },
 
   applicant: {
