@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import { api, Resume, MatchResultDetail, Job, JobApplication } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -27,8 +27,11 @@ import {
   Send,
   Layers,
   Star,
-  XCircle
+  XCircle,
+  Search,
+  Filter
 } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
 
 export default function ApplicantPortalPage() {
   const { user } = useAuth();
@@ -45,6 +48,19 @@ export default function ApplicantPortalPage() {
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
   const [uploadStatus, setUploadStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Tab 1 (Applications) Filtering & Pagination
+  const [searchApps, setSearchApps] = useState("");
+  const [statusFilterApps, setStatusFilterApps] = useState("all");
+  const [currentPageApps, setCurrentPageApps] = useState(1);
+  const pageSizeApps = 6;
+
+  // Tab 2 (Explore Jobs) Filtering & Pagination
+  const [searchJobs, setSearchJobs] = useState("");
+  const [workModeFilterJobs, setWorkModeFilterJobs] = useState("all");
+  const [appliedFilterJobs, setAppliedFilterJobs] = useState("all");
+  const [currentPageJobs, setCurrentPageJobs] = useState(1);
+  const pageSizeJobs = 6;
 
   const renderStatusBadge = (status: string, hasScore: boolean) => {
     if (status === "shortlisted") {
@@ -236,6 +252,60 @@ export default function ApplicantPortalPage() {
   // Set of job IDs already applied to
   const appliedJobIds = new Set(applications.map((a) => a.job_id));
 
+  // Tab 1: Filtered and paginated applications
+  const filteredApplications = useMemo(() => {
+    return applications.filter((app) => {
+      const q = searchApps.toLowerCase().trim();
+      const matchesSearch = !q || app.job_title?.toLowerCase().includes(q);
+      const matchesStatus =
+        statusFilterApps === "all" || app.status?.toLowerCase() === statusFilterApps.toLowerCase();
+      return matchesSearch && matchesStatus;
+    });
+  }, [applications, searchApps, statusFilterApps]);
+
+  useEffect(() => {
+    setCurrentPageApps(1);
+  }, [searchApps, statusFilterApps]);
+
+  const paginatedApplications = useMemo(() => {
+    const start = (currentPageApps - 1) * pageSizeApps;
+    return filteredApplications.slice(start, start + pageSizeApps);
+  }, [filteredApplications, currentPageApps, pageSizeApps]);
+
+  // Tab 2: Filtered and paginated jobs
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      const q = searchJobs.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        job.job_title?.toLowerCase().includes(q) ||
+        job.job_summary?.toLowerCase().includes(q) ||
+        job.location?.toLowerCase().includes(q) ||
+        job.skills?.some((s) => s.skill_name.toLowerCase().includes(q));
+
+      const matchesWorkMode =
+        workModeFilterJobs === "all" ||
+        job.employment_type?.toLowerCase() === workModeFilterJobs.toLowerCase();
+
+      const hasApplied = job.has_applied || appliedJobIds.has(job.job_id);
+      const matchesApplied =
+        appliedFilterJobs === "all" ||
+        (appliedFilterJobs === "applied" && hasApplied) ||
+        (appliedFilterJobs === "unapplied" && !hasApplied);
+
+      return matchesSearch && matchesWorkMode && matchesApplied;
+    });
+  }, [jobs, searchJobs, workModeFilterJobs, appliedFilterJobs, appliedJobIds]);
+
+  useEffect(() => {
+    setCurrentPageJobs(1);
+  }, [searchJobs, workModeFilterJobs, appliedFilterJobs]);
+
+  const paginatedJobs = useMemo(() => {
+    const start = (currentPageJobs - 1) * pageSizeJobs;
+    return filteredJobs.slice(start, start + pageSizeJobs);
+  }, [filteredJobs, currentPageJobs, pageSizeJobs]);
+
   return (
     <div className="space-y-8">
 
@@ -269,11 +339,10 @@ export default function ApplicantPortalPage() {
 
       {uploadStatus && (
         <div
-          className={`p-4 rounded-xl border text-xs font-semibold flex items-center justify-between animate-fadeIn ${
-            uploadStatus.type === "success"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-              : "bg-rose-50 border-rose-200 text-rose-800"
-          }`}
+          className={`p-4 rounded-xl border text-xs font-semibold flex items-center justify-between animate-fadeIn ${uploadStatus.type === "success"
+            ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+            : "bg-rose-50 border-rose-200 text-rose-800"
+            }`}
         >
           <div className="flex items-center gap-2">
             {uploadStatus.type === "success" ? (
@@ -285,11 +354,10 @@ export default function ApplicantPortalPage() {
           </div>
           <button
             onClick={() => setUploadStatus(null)}
-            className={`text-base font-bold ${
-              uploadStatus.type === "success"
-                ? "text-emerald-500 hover:text-emerald-800"
-                : "text-rose-500 hover:text-rose-800"
-            }`}
+            className={`text-base font-bold ${uploadStatus.type === "success"
+              ? "text-emerald-500 hover:text-emerald-800"
+              : "text-rose-500 hover:text-rose-800"
+              }`}
           >
             &times;
           </button>
@@ -439,7 +507,7 @@ export default function ApplicantPortalPage() {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                <span>PDF, DOCX, TXT (Max 10MB)</span>
+                <span>PDF, DOCX, TXT (Max 5MB)</span>
                 <span className="text-amber-600 font-semibold flex items-center gap-1">
                   <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
                   {t.applicant.uploadRequiredBadge}
@@ -455,34 +523,30 @@ export default function ApplicantPortalPage() {
       <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab("applications")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "applications"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === "applications"
+            ? "bg-emerald-600 text-white shadow-sm"
+            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
         >
           <Layers className="w-4 h-4" />
           <span>{t.applicant.applicationsTab}</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
-            activeTab === "applications" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
-          }`}>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${activeTab === "applications" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+            }`}>
             {applications.length}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab("jobs")}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === "jobs"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-          }`}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === "jobs"
+            ? "bg-emerald-600 text-white shadow-sm"
+            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
         >
           <Briefcase className="w-4 h-4" />
           <span>{t.applicant.browseJobsTab}</span>
-          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
-            activeTab === "jobs" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
-          }`}>
+          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${activeTab === "jobs" ? "bg-white/20 text-white" : "bg-slate-200 text-slate-700"
+            }`}>
             {jobs.length}
           </span>
         </button>
@@ -500,6 +564,71 @@ export default function ApplicantPortalPage() {
             </div>
           </div>
 
+          {applications.length > 0 && (
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <div className="relative flex-1 w-full">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchApps}
+                    onChange={(e) => setSearchApps(e.target.value)}
+                    placeholder={t.pagination.searchPlaceholder}
+                    className="w-full ps-8 pe-4 py-1.5 bg-white rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  />
+                  {searchApps && (
+                    <button
+                      onClick={() => setSearchApps("")}
+                      className="absolute end-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => setStatusFilterApps("all")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${statusFilterApps === "all"
+                      ? "bg-slate-900 text-white shadow-xs"
+                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                      }`}
+                  >
+                    {t.pagination.all} ({applications.length})
+                  </button>
+                  <button
+                    onClick={() => setStatusFilterApps("shortlisted")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 ${statusFilterApps === "shortlisted"
+                      ? "bg-purple-600 text-white shadow-xs"
+                      : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+                      }`}
+                  >
+                    <Star className="w-3 h-3 fill-current" />
+                    {t.applicant.statusShortlisted}
+                  </button>
+                  <button
+                    onClick={() => setStatusFilterApps("screened")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${statusFilterApps === "screened"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                      }`}
+                  >
+                    {t.applicant.statusScreened}
+                  </button>
+                  <button
+                    onClick={() => setStatusFilterApps("applied")}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${statusFilterApps === "applied"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
+                      }`}
+                  >
+                    {t.applicant.statusApplied}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {applications.length === 0 ? (
             <div className="text-center py-12 text-xs text-slate-400 space-y-3">
               <Briefcase className="w-8 h-8 text-slate-300 mx-auto" />
@@ -512,87 +641,111 @@ export default function ApplicantPortalPage() {
                 <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
               </button>
             </div>
+          ) : paginatedApplications.length === 0 ? (
+            <div className="text-center py-12 text-xs text-slate-400 space-y-2">
+              <Layers className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="font-bold text-slate-600">{t.pagination.noResults}</p>
+              <button
+                onClick={() => {
+                  setSearchApps("");
+                  setStatusFilterApps("all");
+                }}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold cursor-pointer"
+              >
+                {t.pagination.resetFilters}
+              </button>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {applications.map((app) => {
-                // Find matching result if screened
-                const matchRes = myResults.find((r) => r.job_id === app.job_id);
-                const score = app.compatibility_score ?? matchRes?.compatibility_score;
-                const resultId = app.result_id ?? matchRes?.result_id;
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {paginatedApplications.map((app) => {
+                  // Find matching result if screened
+                  const matchRes = myResults.find((r) => r.job_id === app.job_id);
+                  const score = app.compatibility_score ?? matchRes?.compatibility_score;
+                  const resultId = app.result_id ?? matchRes?.result_id;
 
-                return (
-                  <div key={app.application_id} className="p-5 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-extrabold text-slate-900">{app.job_title}</h4>
-                            {renderStatusBadge(app.status, score !== undefined)}
+                  return (
+                    <div key={app.application_id} className="p-5 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between space-y-4">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-extrabold text-slate-900">{app.job_title}</h4>
+                              {renderStatusBadge(app.status, score !== undefined)}
+                            </div>
+                            <p className="text-[11px] text-slate-400 mt-0.5">
+                              {format(t.applicant.appliedAtCol, { date: app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "" })} &bull; {format(t.applicant.applicationIdBadge, { id: app.application_id })}
+                            </p>
                           </div>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            {format(t.applicant.appliedAtCol, { date: app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "" })} &bull; {format(t.applicant.applicationIdBadge, { id: app.application_id })}
-                          </p>
+                          {score !== undefined && (
+                            <ScoreGauge score={score} size="sm" />
+                          )}
                         </div>
-                        {score !== undefined && (
-                          <ScoreGauge score={score} size="sm" />
+
+                        {matchRes?.explanation ? (
+                          <p className="text-xs text-slate-600 leading-snug line-clamp-2">
+                            {matchRes.explanation.explanation_text}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">
+                            {app.status === "screened"
+                              ? "AI screening calculation completed. Click below to inspect your detailed evaluation."
+                              : "Your application is successfully queued. The recruiter will screen applications using the SmartCV AI engine."}
+                          </p>
+                        )}
+
+                        {matchRes && (
+                          <div className="flex items-center gap-4 text-xs text-slate-500 pt-1">
+                            <span className="font-semibold text-emerald-600 flex items-center gap-1">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> {format(t.applicant.matchedCount, { count: matchRes.matched_skills.length })}
+                            </span>
+                            <span>•</span>
+                            <span className="font-semibold text-rose-600 flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5" /> {format(t.applicant.gapsCount, { count: matchRes.missing_skills.length })}
+                            </span>
+                          </div>
                         )}
                       </div>
 
-                      {matchRes?.explanation ? (
-                        <p className="text-xs text-slate-600 leading-snug line-clamp-2">
-                          {matchRes.explanation.explanation_text}
-                        </p>
-                      ) : (
-                        <p className="text-xs text-slate-400 italic">
-                          {app.status === "screened"
-                            ? "AI screening calculation completed. Click below to inspect your detailed evaluation."
-                            : "Your application is successfully queued. The recruiter will screen applications using the SmartCV AI engine."}
-                        </p>
-                      )}
-
-                      {matchRes && (
-                        <div className="flex items-center gap-4 text-xs text-slate-500 pt-1">
-                          <span className="font-semibold text-emerald-600 flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> {format(t.applicant.matchedCount, { count: matchRes.matched_skills.length })}
-                          </span>
-                          <span>•</span>
-                          <span className="font-semibold text-rose-600 flex items-center gap-1">
-                            <AlertCircle className="w-3.5 h-3.5" /> {format(t.applicant.gapsCount, { count: matchRes.missing_skills.length })}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                      <span className="text-slate-400 text-[11px]">
-                        CV: <bdi className="font-semibold text-slate-600">{app.resume_title || "Default CV"}</bdi>
-                      </span>
-
-                      {resultId ? (
-                        <Link
-                          href={`/applicant/feedback/${resultId}`}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
-                        >
-                          <Lightbulb className="w-3.5 h-3.5 text-emerald-200" />
-                          <span>{t.applicant.viewFeedbackBtn}</span>
-                          <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
-                        </Link>
-                      ) : (
-                        <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                          {app.status === "shortlisted"
-                            ? t.applicant.statusShortlisted
-                            : app.status === "rejected"
-                            ? t.applicant.statusRejected
-                            : app.status === "reviewed"
-                            ? t.applicant.statusReviewed
-                            : t.applicant.statusApplied}
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <span className="text-slate-400 text-[11px]">
+                          CV: <bdi className="font-semibold text-slate-600">{app.resume_title || "Default CV"}</bdi>
                         </span>
-                      )}
+
+                        {resultId ? (
+                          <Link
+                            href={`/applicant/feedback/${resultId}`}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all"
+                          >
+                            <Lightbulb className="w-3.5 h-3.5 text-emerald-200" />
+                            <span>{t.applicant.viewFeedbackBtn}</span>
+                            <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180" />
+                          </Link>
+                        ) : (
+                          <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                            {app.status === "shortlisted"
+                              ? t.applicant.statusShortlisted
+                              : app.status === "rejected"
+                                ? t.applicant.statusRejected
+                                : app.status === "reviewed"
+                                  ? t.applicant.statusReviewed
+                                  : t.applicant.statusApplied}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+
+              <Pagination
+                currentPage={currentPageApps}
+                totalItems={filteredApplications.length}
+                pageSize={pageSizeApps}
+                onPageChange={setCurrentPageApps}
+                itemName={t.pagination.itemsApplications}
+              />
+            </>
           )}
         </div>
       )}
@@ -606,6 +759,67 @@ export default function ApplicantPortalPage() {
               <p className="text-xs text-slate-500">
                 {t.applicant.exploreJobsSubtitle}
               </p>
+            </div>
+          </div>
+
+          {/* Jobs Filter Toolbar */}
+          <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchJobs}
+                  onChange={(e) => setSearchJobs(e.target.value)}
+                  placeholder={t.pagination.searchPlaceholder}
+                  className="w-full ps-8 pe-4 py-1.5 bg-white rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+                {searchJobs && (
+                  <button
+                    onClick={() => setSearchJobs("")}
+                    className="absolute end-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+                <select
+                  value={workModeFilterJobs}
+                  onChange={(e) => setWorkModeFilterJobs(e.target.value)}
+                  className="px-3 py-1.5 bg-white rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">{t.pagination.filterByWorkMode}</option>
+                  <option value="full-time">Full-Time</option>
+                  <option value="part-time">Part-Time</option>
+                  <option value="hybrid">Hybrid</option>
+                  <option value="remote">Remote</option>
+                </select>
+
+                <select
+                  value={appliedFilterJobs}
+                  onChange={(e) => setAppliedFilterJobs(e.target.value)}
+                  className="px-3 py-1.5 bg-white rounded-lg border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer"
+                >
+                  <option value="all">{t.pagination.filterByApplication}</option>
+                  <option value="unapplied">{t.pagination.notAppliedYet}</option>
+                  <option value="applied">{t.pagination.alreadyApplied}</option>
+                </select>
+
+                {(searchJobs || workModeFilterJobs !== "all" || appliedFilterJobs !== "all") && (
+                  <button
+                    onClick={() => {
+                      setSearchJobs("");
+                      setWorkModeFilterJobs("all");
+                      setAppliedFilterJobs("all");
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+                  >
+                    {t.pagination.resetFilters}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
@@ -626,79 +840,105 @@ export default function ApplicantPortalPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {jobs.map((job) => {
-              const hasApplied = job.has_applied || appliedJobIds.has(job.job_id);
-              const isApplying = applyingJobId === job.job_id;
+          {paginatedJobs.length === 0 ? (
+            <div className="text-center py-12 text-xs text-slate-400 space-y-2">
+              <Layers className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="font-bold text-slate-600">{t.pagination.noResults}</p>
+              <button
+                onClick={() => {
+                  setSearchJobs("");
+                  setWorkModeFilterJobs("all");
+                  setAppliedFilterJobs("all");
+                }}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold cursor-pointer"
+              >
+                {t.pagination.resetFilters}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {paginatedJobs.map((job) => {
+                  const hasApplied = job.has_applied || appliedJobIds.has(job.job_id);
+                  const isApplying = applyingJobId === job.job_id;
 
-              return (
-                <div key={job.job_id} className="p-5 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition-all">
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h4 className="text-base font-extrabold text-slate-900 leading-snug">{job.job_title}</h4>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
-                          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location || "Abha, KSA"}</span>
-                          <span>&bull;</span>
-                          <span className="font-semibold text-slate-600">{job.employment_type || "Full-Time"}</span>
+                  return (
+                    <div key={job.job_id} className="p-5 rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col justify-between space-y-4 hover:border-emerald-300 transition-all">
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <h4 className="text-base font-extrabold text-slate-900 leading-snug">{job.job_title}</h4>
+                            <div className="flex items-center gap-2 text-xs text-slate-400 mt-1">
+                              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {job.location || "Abha, KSA"}</span>
+                              <span>&bull;</span>
+                              <span className="font-semibold text-slate-600">{job.employment_type || "Full-Time"}</span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                            {job.status}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                          {job.job_summary || job.raw_job_text}
+                        </p>
+
+                        {/* Target Skills */}
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {job.skills?.slice(0, 6).map((s) => (
+                            <span
+                              key={s.job_skill_id}
+                              className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${s.requirement_type === "required"
+                                ? "bg-slate-100 text-slate-800 border border-slate-200"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                }`}
+                            >
+                              <bdi>{s.skill_name}</bdi>
+                            </span>
+                          ))}
+                          {(job.skills?.length || 0) > 6 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md text-slate-400 font-medium">
+                              +{job.skills.length - 6}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                        {job.status}
-                      </span>
-                    </div>
 
-                    <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                      {job.job_summary || job.raw_job_text}
-                    </p>
-
-                    {/* Target Skills */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {job.skills?.slice(0, 6).map((s) => (
-                        <span
-                          key={s.job_skill_id}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-semibold ${
-                            s.requirement_type === "required"
-                              ? "bg-slate-100 text-slate-800 border border-slate-200"
-                              : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          }`}
-                        >
-                          <bdi>{s.skill_name}</bdi>
+                      <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span className="text-[11px] text-slate-400">
+                          {job.applications_count ? format(t.applicant.applicationsCountBadge, { count: job.applications_count }) : "0 applicants"}
                         </span>
-                      ))}
-                      {(job.skills?.length || 0) > 6 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-md text-slate-400 font-medium">
-                          +{job.skills.length - 6}
-                        </span>
-                      )}
+
+                        {hasApplied ? (
+                          <span className="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>{t.applicant.appliedBadge}</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => handleApply(job)}
+                            disabled={isApplying}
+                            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                          >
+                            <Send className={`w-3.5 h-3.5 ${isApplying ? "animate-spin" : ""}`} />
+                            <span>{isApplying ? "Applying..." : t.applicant.applyNowBtn}</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  );
+                })}
+              </div>
 
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-400">
-                      {job.applications_count ? format(t.applicant.applicationsCountBadge, { count: job.applications_count }) : "0 applicants"}
-                    </span>
-
-                    {hasApplied ? (
-                      <span className="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 flex items-center gap-1.5">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{t.applicant.appliedBadge}</span>
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => handleApply(job)}
-                        disabled={isApplying}
-                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-60"
-                      >
-                        <Send className={`w-3.5 h-3.5 ${isApplying ? "animate-spin" : ""}`} />
-                        <span>{isApplying ? "Applying..." : t.applicant.applyNowBtn}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+              <Pagination
+                currentPage={currentPageJobs}
+                totalItems={filteredJobs.length}
+                pageSize={pageSizeJobs}
+                onPageChange={setCurrentPageJobs}
+                itemName={t.pagination.itemsJobs}
+              />
+            </>
+          )}
         </div>
       )}
 

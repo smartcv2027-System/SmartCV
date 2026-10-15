@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api, Job, JobRankingSummary, MatchResultDetail, JobApplication } from "@/lib/api";
@@ -22,10 +22,13 @@ import {
   Users,
   Star,
   XCircle,
-  CheckCircle2
+  CheckCircle2,
+  Search,
+  Filter
 } from "lucide-react";
 import { useConfirm } from "@/lib/confirm-context";
 import { useLanguage, format } from "@/lib/i18n";
+import { Pagination } from "@/components/Pagination";
 
 export default function CandidateRankingPage() {
   const { showAlert } = useConfirm();
@@ -45,6 +48,13 @@ export default function CandidateRankingPage() {
   const [weightSbert, setWeightSbert] = useState(50);
   const [weightTfidf, setWeightTfidf] = useState(20);
   const [weightSkills, setWeightSkills] = useState(30);
+
+  // Search, Filtering & Pagination State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [decisionFilter, setDecisionFilter] = useState("all");
+  const [tierFilter, setTierFilter] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
   useEffect(() => {
     if (jobId) {
@@ -141,6 +151,64 @@ export default function CandidateRankingPage() {
   };
 
   const totalWeight = weightSbert + weightTfidf + weightSkills;
+
+  // Filtered and paginated ranking results
+  const filteredResults = useMemo(() => {
+    if (!rankingData?.results) return [];
+    return rankingData.results.filter((res) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        res.candidate_name?.toLowerCase().includes(q) ||
+        res.matched_skills?.some((s) => s.skill_name.toLowerCase().includes(q));
+
+      const status = res.application_status || (res.compatibility_score !== undefined ? "screened" : "applied");
+      const matchesDecision =
+        decisionFilter === "all" || status.toLowerCase() === decisionFilter.toLowerCase();
+
+      let matchesTier = true;
+      if (tierFilter === "strong") {
+        matchesTier = res.compatibility_score >= 70;
+      } else if (tierFilter === "good") {
+        matchesTier = res.compatibility_score >= 50 && res.compatibility_score < 70;
+      } else if (tierFilter === "low") {
+        matchesTier = res.compatibility_score < 50;
+      }
+
+      return matchesSearch && matchesDecision && matchesTier;
+    });
+  }, [rankingData?.results, searchQuery, decisionFilter, tierFilter]);
+
+  // Reset to page 1 on filter or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, decisionFilter, tierFilter]);
+
+  const paginatedResults = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredResults.slice(start, start + pageSize);
+  }, [filteredResults, currentPage, pageSize]);
+
+  // Counts for decision categories
+  const counts = useMemo(() => {
+    const list = rankingData?.results || [];
+    return {
+      all: list.length,
+      shortlisted: list.filter((r) => r.application_status === "shortlisted").length,
+      screened: list.filter((r) => !r.application_status || r.application_status === "screened").length,
+      reviewed: list.filter((r) => r.application_status === "reviewed").length,
+      rejected: list.filter((r) => r.application_status === "rejected").length,
+    };
+  }, [rankingData?.results]);
+
+  const hasActiveFilters = searchQuery || decisionFilter !== "all" || tierFilter !== "all";
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setDecisionFilter("all");
+    setTierFilter("all");
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return (
@@ -407,6 +475,103 @@ export default function CandidateRankingPage() {
           ) : null}
         </div>
 
+        {/* Ranking Toolbar: Search, Decision Filter Pills & Compatibility Tier */}
+        {rankingData?.results && rankingData.results.length > 0 && (
+          <div className="space-y-3 pt-1">
+            <div className="flex flex-col md:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={t.pagination.searchPlaceholder}
+                  className="w-full ps-9 pe-4 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 w-full md:w-auto">
+                <select
+                  value={tierFilter}
+                  onChange={(e) => setTierFilter(e.target.value)}
+                  className="px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 cursor-pointer"
+                >
+                  <option value="all">{t.pagination.filterByTier}</option>
+                  <option value="strong">{t.pagination.strongMatchTier}</option>
+                  <option value="good">{t.pagination.goodMatchTier}</option>
+                  <option value="low">{t.pagination.lowMatchTier}</option>
+                </select>
+
+                {hasActiveFilters && (
+                  <button
+                    onClick={resetFilters}
+                    className="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer shrink-0"
+                  >
+                    {t.pagination.resetFilters}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Decision Filter Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider me-1 flex items-center gap-1">
+                <Filter className="w-3 h-3" /> {t.matching.decisionCol}:
+              </span>
+              <button
+                onClick={() => setDecisionFilter("all")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  decisionFilter === "all"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {t.pagination.all} ({counts.all})
+              </button>
+              <button
+                onClick={() => setDecisionFilter("shortlisted")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 ${
+                  decisionFilter === "shortlisted"
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
+                }`}
+              >
+                <Star className="w-3 h-3 fill-current" />
+                {t.applicant.statusShortlisted} ({counts.shortlisted})
+              </button>
+              <button
+                onClick={() => setDecisionFilter("screened")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  decisionFilter === "screened"
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
+                }`}
+              >
+                {t.applicant.statusScreened} ({counts.screened})
+              </button>
+              <button
+                onClick={() => setDecisionFilter("rejected")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1 ${
+                  decisionFilter === "rejected"
+                    ? "bg-rose-600 text-white shadow-xs"
+                    : "bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200"
+                }`}
+              >
+                <XCircle className="w-3 h-3" />
+                {t.applicant.statusRejected} ({counts.rejected})
+              </button>
+            </div>
+          </div>
+        )}
+
         {(!rankingData?.results || rankingData.results.length === 0) ? (
           <div className="text-center py-12 space-y-3">
             <Layers className="w-8 h-8 text-slate-300 mx-auto" />
@@ -423,7 +588,8 @@ export default function CandidateRankingPage() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full min-w-[850px] text-start text-xs table-auto">
               <thead>
                 <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] tracking-wider">
@@ -439,7 +605,7 @@ export default function CandidateRankingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {rankingData.results.map((res) => (
+                {paginatedResults.map((res) => (
                   <tr key={res.result_id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-4 px-3 font-extrabold text-slate-900 w-px whitespace-nowrap">
                       <span className={`w-6 h-6 rounded-full inline-flex items-center justify-center text-xs font-black ${res.rank_position === 1
@@ -579,6 +745,15 @@ export default function CandidateRankingPage() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredResults.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            itemName={t.pagination.itemsCandidates}
+          />
+        </>
         )}
       </div>
 

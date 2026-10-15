@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { api, Job } from "@/lib/api";
 import { useLanguage, format, getLocalizedError } from "@/lib/i18n";
@@ -17,9 +17,12 @@ import {
   FileText,
   X,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Search,
+  Filter
 } from "lucide-react";
 import { useConfirm } from "@/lib/confirm-context";
+import { Pagination } from "@/components/Pagination";
 
 export default function JobsPage() {
   const { confirm } = useConfirm();
@@ -27,6 +30,14 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Search, Filter & Pagination state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [employmentFilter, setEmploymentFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "applicants">("newest");
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 6;
 
   // Form state
   const [creationMode, setCreationMode] = useState<"fields" | "file">("fields");
@@ -71,6 +82,56 @@ export default function JobsPage() {
       setLoading(false);
     }
   }
+
+  // Multi-criteria filtered and sorted jobs
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        job.job_title.toLowerCase().includes(q) ||
+        job.job_summary?.toLowerCase().includes(q) ||
+        job.location?.toLowerCase().includes(q) ||
+        job.skills?.some((s) => s.skill_name.toLowerCase().includes(q));
+
+      const matchesStatus =
+        statusFilter === "all" || job.status.toLowerCase() === statusFilter.toLowerCase();
+
+      const matchesEmployment =
+        employmentFilter === "all" ||
+        job.employment_type?.toLowerCase().includes(employmentFilter.toLowerCase());
+
+      return matchesSearch && matchesStatus && matchesEmployment;
+    }).sort((a, b) => {
+      if (sortBy === "applicants") {
+        return (b.applications_count || 0) - (a.applications_count || 0);
+      }
+      if (sortBy === "oldest") {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+  }, [jobs, searchQuery, statusFilter, employmentFilter, sortBy]);
+
+  // Reset to page 1 whenever search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, employmentFilter, sortBy]);
+
+  const paginatedJobs = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredJobs.slice(start, start + pageSize);
+  }, [filteredJobs, currentPage, pageSize]);
+
+  const hasActiveFilters = searchQuery || statusFilter !== "all" || employmentFilter !== "all" || sortBy !== "newest";
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setEmploymentFilter("all");
+    setSortBy("newest");
+    setCurrentPage(1);
+  };
 
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,9 +359,93 @@ export default function JobsPage() {
         </button>
       </div>
 
+      {/* Search & Filter Toolbar */}
+      <div className="p-4 rounded-2xl glass-card border border-slate-200/80 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.pagination.searchPlaceholder}
+              className="w-full ps-9 pe-4 py-2 bg-white rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute end-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+              >
+                &times;
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+            <select
+              value={employmentFilter}
+              onChange={(e) => setEmploymentFilter(e.target.value)}
+              className="px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 cursor-pointer"
+            >
+              <option value="all">{t.pagination.filterByWorkMode}</option>
+              <option value="full-time">Full-Time</option>
+              <option value="part-time">Part-Time</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="remote">Remote</option>
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 cursor-pointer"
+            >
+              <option value="all">{t.pagination.filterByStatus}</option>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-3 py-2 bg-white rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 cursor-pointer"
+            >
+              <option value="newest">{t.pagination.newestFirst}</option>
+              <option value="oldest">{t.pagination.oldestFirst}</option>
+              <option value="applicants">{t.pagination.mostApplicants}</option>
+            </select>
+
+            {hasActiveFilters && (
+              <button
+                onClick={resetFilters}
+                className="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 border border-rose-200 transition-colors cursor-pointer"
+              >
+                {t.pagination.resetFilters}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Jobs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {jobs.map((job) => (
+      {paginatedJobs.length === 0 ? (
+        <div className="text-center py-12 p-8 rounded-2xl glass-card border border-slate-200 space-y-3">
+          <Layers className="w-8 h-8 text-slate-300 mx-auto" />
+          <p className="text-xs text-slate-500 font-medium">
+            {t.pagination.noResults}
+          </p>
+          {hasActiveFilters && (
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            >
+              {t.pagination.resetFilters}
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {paginatedJobs.map((job) => (
           <div key={job.job_id} className="p-6 rounded-2xl glass-card border border-slate-200 shadow-xs flex flex-col justify-between hover:border-brand-300 transition-all space-y-4">
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-2">
@@ -392,7 +537,18 @@ export default function JobsPage() {
             </div>
           </div>
         ))}
-      </div>
+          </div>
+
+          {/* Pagination Controls */}
+          <Pagination
+            currentPage={currentPage}
+            totalItems={filteredJobs.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            itemName={t.pagination.itemsJobs}
+          />
+        </>
+      )}
 
       {/* Create Job Modal with Dual Mode */}
       {isModalOpen && (
