@@ -338,6 +338,8 @@ export const en = {
     applicationsTab: "My Applications & Screenings",
     browseJobsTab: "Explore Open Jobs",
     applicationsCountBadge: "{count} Applied",
+    appliedAtCol: "Applied on {date}",
+    applicationIdBadge: "Application #{id}",
   },
 
   feedback: {

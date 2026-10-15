@@ -18,7 +18,7 @@
    *(Default: $50\%$ SBERT, $20\%$ TF-IDF, $30\%$ Skills — customizable by recruiters in real time).*
 4. **Explainable AI (XAI) & Structured Feedback Engine** — Verbatim resume quote citations for matched skills, identified skill gaps, and personalized curriculum recommendations for early-career students.
 5. **Role-Based Access Control (RBAC)** — Strictly demarcated workflows for **Recruiters**, **Applicants**, and **System Administrators** with 15 relational database tables and immutable audit logs.
-6. **Bilingual Arabic & English Support (i18n & RTL/LTR)** — Full internationalization across all 16 pages and modals, dynamic bidirectional layout switching, font pairing (`Cairo` for Arabic, `Inter` for English), and 100% key parity (497 keys).
+6. **Bilingual Arabic & English Support (i18n & RTL/LTR)** — Full internationalization across all 16 pages and modals, dynamic bidirectional layout switching, font pairing (`Cairo` for Arabic, `Inter` for English), and 100% key parity (499 keys).
 7. **Document Validation Safeguards** — Multi-layer file security with 0-byte (empty file) rejection, 5 MB file size ceilings, MIME/extension verification, and stream rewind safety for resumes and job specifications.
 8. **Candidate Job Applications & Filtered Screening** — Applicants can explore open positions, submit 1-click applications with their active parsed CV, and track submission statuses. AI semantic screening strictly and exclusively evaluates candidates who submitted a job application for the target posting, with automated zero-applicant safety guards.
 
@@ -194,7 +194,7 @@ Verify 100% key parity across Arabic and English dictionaries:
 cd frontend
 node scripts/verify-i18n.js
 ```
-Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 497 localized keys.
+Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 499 localized keys.
 
 ### Thesis Evaluation Dashboard
 Visit **http://localhost:3000/admin/evaluation** (logged in as `laila_admin`) to inspect:

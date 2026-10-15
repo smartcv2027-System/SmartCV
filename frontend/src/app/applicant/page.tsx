@@ -443,7 +443,7 @@ export default function ApplicantPortalPage() {
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-400 mt-0.5">
-                            {format(t.applicant.appliedAtCol, { date: app.applied_at })} &bull; Application #{app.application_id}
+                            {format(t.applicant.appliedAtCol, { date: app.applied_at ? new Date(app.applied_at).toLocaleDateString() : "" })} &bull; {format(t.applicant.applicationIdBadge, { id: app.application_id })}
                           </p>
                         </div>
                         {score !== undefined && (

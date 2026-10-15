@@ -340,6 +340,8 @@ export const ar: Translations = {
     applicationsTab: "طلباتي ونتائج الفرز",
     browseJobsTab: "استكشاف الوظائف المتاحة",
     applicationsCountBadge: "{count} طلبات تقديم",
+    appliedAtCol: "تم التقديم في {date}",
+    applicationIdBadge: "طلب رقم #{id}",
   },
 
   feedback: {
