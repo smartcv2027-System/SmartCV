@@ -129,7 +129,10 @@ export default function LoginPage() {
           <div className="relative">
             <User className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
             <input
+              id="login-username"
+              name="username"
               type="text"
+              autoComplete="username"
               value={usernameOrEmail}
               onChange={(e) => setUsernameOrEmail(e.target.value)}
               placeholder={t.auth.usernamePlaceholder}
@@ -144,7 +147,10 @@ export default function LoginPage() {
           <div className="relative">
             <Lock className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
             <input
+              id="login-password"
+              name="password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t.auth.passwordPlaceholder}

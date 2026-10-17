@@ -171,10 +171,13 @@ export default function RegisterPage() {
             <div className="relative">
               <AtSign className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               <input
+                id="register-username"
+                name="username"
                 type="text"
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase())}
-                placeholder="fahad_cs"
+                placeholder={t.auth.usernameInputPlaceholder}
                 required
                 className={`w-full ps-9 pe-3 py-2.5 rounded-xl border text-xs text-slate-800 focus:outline-none focus:ring-2 bg-white ${
                   !isUsernameValid
@@ -199,7 +202,10 @@ export default function RegisterPage() {
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               <input
+                id="register-fullname"
+                name="name"
                 type="text"
+                autoComplete="name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder={t.auth.fullNamePlaceholder}
@@ -219,10 +225,13 @@ export default function RegisterPage() {
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               <input
+                id="register-email"
+                name="email"
                 type="email"
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="fahad@kku.edu.sa"
+                placeholder={t.auth.emailPlaceholder}
                 required
                 className="w-full ps-9 pe-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
               />
@@ -236,7 +245,10 @@ export default function RegisterPage() {
             <div className="relative">
               <Phone className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               <input
+                id="register-phone"
+                name="phone"
                 type="tel"
+                autoComplete="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="+966 50 123 4567"
@@ -256,7 +268,10 @@ export default function RegisterPage() {
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               <input
+                id="register-password"
+                name="password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t.auth.passwordPlaceholder}
@@ -282,7 +297,10 @@ export default function RegisterPage() {
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute start-3 top-3" />
               <input
+                id="register-confirm-password"
+                name="confirmPassword"
                 type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder={t.auth.passwordPlaceholder}

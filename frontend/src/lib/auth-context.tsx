@@ -37,8 +37,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (e) {
         localStorage.removeItem("smartcv_token");
         localStorage.removeItem("smartcv_user");
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false);
+
+      // Sync and validate session with backend (handles stale names or expired tokens)
+      api
+        .getMe()
+        .then((freshUser) => {
+          localStorage.setItem("smartcv_user", JSON.stringify(freshUser));
+          setUser(freshUser);
+        })
+        .catch(() => {
+          localStorage.removeItem("smartcv_token");
+          localStorage.removeItem("smartcv_user");
+          setToken(null);
+          setUser(null);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     } else {
       setIsLoading(false);
     }
