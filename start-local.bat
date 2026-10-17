@@ -46,9 +46,9 @@ echo   - Web Application: http://localhost:3000
 echo   - Interactive API: http://127.0.0.1:8000/docs
 echo.
 echo   Demo Login Personas:
-echo   1. Recruiter:  sarah_recruiter  / password123
-echo   2. Applicant:  fahad_applicant  / password123
-echo   3. Admin:      laila_admin      / admin123
+echo   1. Recruiter:  ghadi_recruiter  / password123
+echo   2. Applicant:  reema_applicant  / password123
+echo   3. Admin:      raneem_admin     / admin123
 echo ==============================================================================
 echo.
 echo Press any key in this window to close this launcher (servers will keep running).

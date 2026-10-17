@@ -12,17 +12,15 @@ from app.models.models import (
     ApplicantFeedback, AuditLog, JobApplication
 )
 from app.ai.taxonomy import DEFAULT_SKILLS_TAXONOMY, extract_skills_from_text
-from app.ai.matcher import SmartCVMatcher
-from app.ai.xai_explainer import XAIExplainer
 
 def seed_database(force_reseed: bool = False):
     """
     Seeds the SmartCV database with:
     1. Standard Skills Taxonomy
-    2. Core Personas (Sarah Al-Ghamdi, Fahad Al-Qahtani, Laila Al-Asmari)
+    2. Core Personas (Ghadi Mohammed Ali Asiri, Reema Yahya Alfaifi, Raneem Khalid Alzhrani)
     3. 15 Authentic Candidate Profiles across 6 KKU degree specializations
     4. 6 Enterprise Tech Job Descriptions (Saudi & regional tech markets)
-    5. Real AI Match Calculations & XAI Explanations for all 14 database tables
+    5. Candidate Job Applications (ready for on-demand AI screening)
     6. Physical Resume Files stored in settings.UPLOAD_DIR
     """
     print("Ensuring database schema is up-to-date...")
@@ -31,11 +29,11 @@ def seed_database(force_reseed: bool = False):
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 
     # Check if already seeded unless forced
-    existing_sarah = db.query(User).filter(User.email == "sarah.recruiter@tech.sa").first()
+    existing_recruiter = db.query(User).filter(User.email == "ghadi.recruiter@tech.sa").first()
     candidate_count = db.query(CandidateProfile).count()
     job_count = db.query(Job).count()
 
-    if not force_reseed and existing_sarah and candidate_count >= 10 and job_count >= 5:
+    if not force_reseed and existing_recruiter and candidate_count >= 10 and job_count >= 5:
         print(f"Database is already seeded with {candidate_count} candidates and {job_count} jobs.")
         db.close()
         return
@@ -96,15 +94,15 @@ def seed_database(force_reseed: bool = False):
     db.commit()
 
     # ------------------------------------------------------------------------
-    # 2. System Core Personas (Sarah, Fahad, Laila)
+    # 2. System Core Personas (Ghadi, Reema, Raneem)
     # ------------------------------------------------------------------------
     print("Seeding core administrative and recruiter personas...")
-    sarah = db.query(User).filter(User.username == "sarah_recruiter").first()
+    sarah = db.query(User).filter(User.username == "ghadi_recruiter").first()
     if not sarah:
         sarah = User(
-            username="sarah_recruiter",
-            full_name="Sarah Al-Ghamdi",
-            email="sarah.recruiter@tech.sa",
+            username="ghadi_recruiter",
+            full_name="Ghadi Mohammed Ali Asiri",
+            email="ghadi.recruiter@tech.sa",
             password_hash=get_password_hash("password123"),
             role_type=UserRole.RECRUITER,
             phone="+966 50 123 4567",
@@ -114,12 +112,12 @@ def seed_database(force_reseed: bool = False):
         db.commit()
         db.refresh(sarah)
 
-    fahad = db.query(User).filter(User.username == "fahad_applicant").first()
+    fahad = db.query(User).filter(User.username == "reema_applicant").first()
     if not fahad:
         fahad = User(
-            username="fahad_applicant",
-            full_name="Fahad Al-Qahtani",
-            email="fahad.applicant@kku.edu.sa",
+            username="reema_applicant",
+            full_name="Reema Yahya Alfaifi",
+            email="reema.applicant@kku.edu.sa",
             password_hash=get_password_hash("password123"),
             role_type=UserRole.APPLICANT,
             phone="+966 55 987 6543",
@@ -129,12 +127,12 @@ def seed_database(force_reseed: bool = False):
         db.commit()
         db.refresh(fahad)
 
-    laila = db.query(User).filter(User.username == "laila_admin").first()
+    laila = db.query(User).filter(User.username == "raneem_admin").first()
     if not laila:
         laila = User(
-            username="laila_admin",
-            full_name="Laila Al-Asmari",
-            email="laila.admin@kku.edu.sa",
+            username="raneem_admin",
+            full_name="Raneem Khalid Alzhrani",
+            email="raneem.admin@kku.edu.sa",
             password_hash=get_password_hash("admin123"),
             role_type=UserRole.ADMIN,
             phone="+966 54 321 0987",
@@ -151,20 +149,20 @@ def seed_database(force_reseed: bool = False):
 
     CANDIDATES_METADATA = [
         {
-            "username": "fahad_applicant",
-            "full_name": "Fahad Al-Qahtani",
-            "email": "fahad.applicant@kku.edu.sa",
+            "username": "reema_applicant",
+            "full_name": "Reema Yahya Alfaifi",
+            "email": "reema.applicant@kku.edu.sa",
             "phone": "+966 55 987 6543",
-            "student_id": "444809895",
+            "student_id": "444809769",
             "major": "Information Systems",
             "university": "King Khalid University",
             "gpa": "4.78 / 5.0",
             "career_level": "Senior Student / Fresh Graduate",
             "summary": "Information Systems senior specializing in AI, Machine Learning, and Sentence-BERT with hands-on capstone project experience on explainable recruitment screening.",
-            "filename": "Fahad_AlQahtani_CV.txt",
-            "resume_text": """FAHAD AL-QAHTANI
-Abha, Saudi Arabia | fahad.applicant@kku.edu.sa | +966 55 987 6543
-LinkedIn: linkedin.com/in/fahad-kku | GitHub: github.com/fahad-kku
+            "filename": "Reema_Alfaifi_CV.txt",
+            "resume_text": """REEMA YAHYA ALFAIFI
+Abha, Saudi Arabia | reema.applicant@kku.edu.sa | +966 55 987 6543
+LinkedIn: linkedin.com/in/reema-kku | GitHub: github.com/reema-kku
 
 EDUCATION
 Bachelor of Science in Information Systems | King Khalid University, Abha, KSA
@@ -190,7 +188,7 @@ ACADEMIC PROJECTS
             "full_name": "Nouf Al-Otaibi",
             "email": "nouf.otaibi@kku.edu.sa",
             "phone": "+966 56 111 2233",
-            "student_id": "444809769",
+            "student_id": "444809895",
             "major": "Computer Science",
             "university": "King Khalid University",
             "gpa": "4.90 / 5.0",
@@ -968,17 +966,17 @@ REQUIREMENTS & QUALIFICATIONS:
 
     APPLICATIONS_MAPPING = [
         # Job 0: Junior AI & Machine Learning Engineer
-        (0, ["fahad_applicant", "abdulaziz_ghamdi", "halah_zahrani", "bayan_shahrani", "khaled_garni"]),
+        (0, ["reema_applicant", "abdulaziz_ghamdi", "halah_zahrani", "bayan_shahrani", "khaled_garni"]),
         # Job 1: Cloud & DevOps Infrastructure Engineer
-        (1, ["saad_dossary", "tariq_omari", "fahad_applicant", "khaled_garni"]),
+        (1, ["saad_dossary", "tariq_omari", "reema_applicant", "khaled_garni"]),
         # Job 2: Information Security & SOC Analyst
         (2, ["reem_ghamdi", "yazeed_mutairi", "khaled_garni"]),
         # Job 3: Data Engineer & Business Intelligence Specialist
-        (3, ["omar_shehri", "bayan_shahrani", "fahad_applicant", "fatima_sulaiman"]),
+        (3, ["omar_shehri", "bayan_shahrani", "reema_applicant", "fatima_sulaiman"]),
         # Job 4: Full-Stack Software Engineer
-        (4, ["nouf_otaibi", "rakan_harbi", "fahad_applicant", "mona_asiri"]),
+        (4, ["nouf_otaibi", "rakan_harbi", "reema_applicant", "mona_asiri"]),
         # Job 5: Additional Enterprise Backend role if present
-        (5, ["rakan_harbi", "nouf_otaibi", "fahad_applicant"]),
+        (5, ["rakan_harbi", "nouf_otaibi", "reema_applicant"]),
     ]
 
     for job_idx, usernames in APPLICATIONS_MAPPING:
@@ -1003,144 +1001,6 @@ REQUIREMENTS & QUALIFICATIONS:
     db.commit()
 
     # ------------------------------------------------------------------------
-    # 6. Pre-Compute AI Matching Results & XAI Explanations for SUBMITTED APPLICATIONS ONLY
-    # ------------------------------------------------------------------------
-    print("Pre-calculating AI compatibility scores and XAI explanations for submitted job applications...")
-    matcher = SmartCVMatcher()
-    explainer = XAIExplainer()
-
-    for job in seeded_jobs:
-        # Fetch job skills
-        job_skills_data = [
-            {
-                "skill_id": js.skill_id,
-                "skill_name": js.skill.skill_name,
-                "skill_type": js.skill.skill_type,
-                "requirement_type": js.requirement_type,
-                "weight": js.weight
-            }
-            for js in job.job_skills
-        ]
-
-        # Match ONLY candidates who submitted an application for this specific job
-        job_apps = db.query(JobApplication).filter(JobApplication.job_id == job.job_id).all()
-
-        for app_rec in job_apps:
-            resume = db.query(Resume).filter(Resume.resume_id == app_rec.resume_id).first()
-            prof = db.query(CandidateProfile).filter(CandidateProfile.candidate_id == app_rec.candidate_id).first()
-            if not resume or not prof:
-                continue
-
-            cand_skills_data = [
-                {
-                    "skill_id": cs.skill_id,
-                    "skill_name": cs.skill.skill_name,
-                    "skill_type": cs.skill.skill_type,
-                    "evidence_text": cs.evidence_text
-                }
-                for cs in resume.candidate_skills
-            ]
-
-            cand_names = {s["skill_name"].lower() for s in cand_skills_data}
-            matched_count = sum(1 for js in job_skills_data if js["skill_name"].lower() in cand_names)
-            total_skills_count = max(1, len(job_skills_data))
-
-            match_out = matcher.match_resume_to_job(
-                resume_text=resume.raw_text,
-                job_text=job.raw_job_text,
-                matched_skills_count=matched_count,
-                total_job_skills_count=total_skills_count
-            )
-
-            matched_s, missing_s, expl_sum, app_fb = explainer.explain_match(
-                job_title=job.job_title,
-                job_skills=job_skills_data,
-                candidate_skills=cand_skills_data,
-                match_metrics=match_out
-            )
-
-            # Check if match result already exists
-            mr = db.query(MatchResult).filter(
-                MatchResult.job_id == job.job_id,
-                MatchResult.candidate_id == prof.candidate_id
-            ).first()
-
-            if not mr:
-                mr = MatchResult(
-                    job_id=job.job_id,
-                    candidate_id=prof.candidate_id,
-                    resume_id=resume.resume_id,
-                    application_id=app_rec.application_id,
-                    tfidf_score=match_out["tfidf_score"],
-                    bert_score=match_out["bert_score"],
-                    compatibility_score=match_out["compatibility_score"],
-                    recommendation_status=match_out["recommendation_status"]
-                )
-                db.add(mr)
-                db.commit()
-                db.refresh(mr)
-            else:
-                mr.application_id = app_rec.application_id
-                mr.tfidf_score = match_out["tfidf_score"]
-                mr.bert_score = match_out["bert_score"]
-                mr.compatibility_score = match_out["compatibility_score"]
-                mr.recommendation_status = match_out["recommendation_status"]
-                db.commit()
-
-            app_rec.status = "screened"
-
-            # Clean and repopulate matched and missing skills
-            db.query(MatchedSkill).filter(MatchedSkill.result_id == mr.result_id).delete()
-            for ms in matched_s:
-                if ms.get("skill_id"):
-                    db.add(MatchedSkill(
-                        result_id=mr.result_id,
-                        skill_id=ms["skill_id"],
-                        evidence_text=ms.get("evidence_text"),
-                        contribution_score=ms.get("contribution_score", 0.0)
-                    ))
-
-            db.query(MissingSkill).filter(MissingSkill.result_id == mr.result_id).delete()
-            for ms in missing_s:
-                if ms.get("skill_id"):
-                    db.add(MissingSkill(
-                        result_id=mr.result_id,
-                        skill_id=ms["skill_id"],
-                        requirement_type=ms.get("requirement_type", "preferred"),
-                        improvement_note=ms.get("improvement_note")
-                    ))
-
-            # Explanation summary
-            db.query(ExplanationSummary).filter(ExplanationSummary.result_id == mr.result_id).delete()
-            db.add(ExplanationSummary(
-                result_id=mr.result_id,
-                explanation_text=expl_sum["explanation_text"],
-                score_reason=expl_sum["score_reason"],
-                matched_skill_summary=expl_sum["matched_skill_summary"],
-                missing_skill_summary=expl_sum["missing_skill_summary"]
-            ))
-
-            # Applicant feedback
-            db.query(ApplicantFeedback).filter(ApplicantFeedback.result_id == mr.result_id).delete()
-            db.add(ApplicantFeedback(
-                result_id=mr.result_id,
-                candidate_id=prof.candidate_id,
-                feedback_text=app_fb["feedback_text"],
-                improvement_items=app_fb.get("improvement_items", []),
-                missing_skill_recommendations=app_fb.get("missing_skill_recommendations", [])
-            ))
-            db.commit()
-
-        # Re-rank candidates for this job
-        job_results = db.query(MatchResult).filter(
-            MatchResult.job_id == job.job_id
-        ).order_by(MatchResult.compatibility_score.desc()).all()
-
-        for rank_idx, r in enumerate(job_results, 1):
-            r.rank_position = rank_idx
-        db.commit()
-
-    # ------------------------------------------------------------------------
     # 6. Audit Log
     # ------------------------------------------------------------------------
     db.add(AuditLog(
@@ -1148,12 +1008,12 @@ REQUIREMENTS & QUALIFICATIONS:
         action_type="DATABASE_SEEDED_MULTI_TRACK",
         entity_name="Database",
         entity_id=1,
-        description=f"SmartCV initialized and seeded with 15 authentic candidate profiles across KKU degree specializations and 6 enterprise tech jobs."
+        description="SmartCV initialized and seeded with 15 authentic candidate profiles across KKU degree specializations and 6 enterprise tech jobs."
     ))
     db.commit()
     db.close()
     print("Database seeding completed successfully!")
-    print(f"Total: 15 Candidates, 6 Jobs, {len(CANDIDATES_METADATA) * len(JOBS_DATA)} Pre-Computed AI Match Results.")
+    print("Total: 15 Candidates, 6 Jobs, Applications seeded (no pre-computed AI match results).")
 
 if __name__ == "__main__":
     force = "--force" in sys.argv or "--reset" in sys.argv

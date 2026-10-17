@@ -16,9 +16,9 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const DEMO_USERS = {
-  recruiter: { username: "sarah_recruiter", pass: "password123" },
-  applicant: { username: "fahad_applicant", pass: "password123" },
-  admin: { username: "laila_admin", pass: "admin123" },
+  recruiter: { username: "ghadi_recruiter", pass: "password123" },
+  applicant: { username: "reema_applicant", pass: "password123" },
+  admin: { username: "raneem_admin", pass: "admin123" },
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {

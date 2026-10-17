@@ -56,8 +56,8 @@ Write-Host "  - Frontend Portal:  http://localhost:3000" -ForegroundColor Green
 Write-Host "  - Swagger API Docs: http://127.0.0.1:8000/docs" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Demo Personas (Password: password123 / admin123):" -ForegroundColor Yellow
-Write-Host "  - Recruiter:  sarah_recruiter" -ForegroundColor White
-Write-Host "  - Applicant:  fahad_applicant" -ForegroundColor White
-Write-Host "  - Admin:      laila_admin" -ForegroundColor White
+Write-Host "  - Recruiter:  ghadi_recruiter" -ForegroundColor White
+Write-Host "  - Applicant:  reema_applicant" -ForegroundColor White
+Write-Host "  - Admin:      raneem_admin" -ForegroundColor White
 Write-Host "==============================================================================" -ForegroundColor Cyan
 Write-Host ""

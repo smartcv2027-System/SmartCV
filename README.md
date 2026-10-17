@@ -112,9 +112,9 @@ Open **http://localhost:3000** in your browser.
 
 | Persona | Name | Role | Username | Password | Features to Explore |
 |---|---|---|---|---|---|
-| **Recruiter** | Sarah Al-Ghamdi | `recruiter` | `sarah_recruiter` | `password123` | View 6 tech jobs, review applicants, tune AI weights, run applicant-filtered screening, export dossiers, create jobs |
-| **Applicant** | Fahad Al-Qahtani | `applicant` | `fahad_applicant` | `password123` | Inspect extracted skills with evidence quotes, browse open jobs, submit 1-click applications with CV, track statuses, view feedback |
-| **Administrator** | Laila Al-Asmari | `admin` | `laila_admin` | `admin123` | Evaluation dashboard, 1-click LaTeX thesis table export, CSV dataset download, audit logs |
+| **Recruiter** | Ghadi Mohammed Ali Asiri | `recruiter` | `ghadi_recruiter` | `password123` | View 6 tech jobs, review applicants, tune AI weights, run applicant-filtered screening, export dossiers, create jobs |
+| **Applicant** | Reema Yahya Alfaifi | `applicant` | `reema_applicant` | `password123` | Inspect extracted skills with evidence quotes, browse open jobs, submit 1-click applications with CV, track statuses, view feedback |
+| **Administrator** | Raneem Khalid Alzhrani | `admin` | `raneem_admin` | `admin123` | Evaluation dashboard, 1-click LaTeX thesis table export, CSV dataset download, audit logs |
 
 > **Note**: Users can sign in using either their **Username** or **Email Address**. The navigation bar also features a **Demo Role Switcher** dropdown for instantaneous switching between personas without signing out, as well as a one-click **Language Switcher** between Arabic and English.
 
@@ -197,7 +197,7 @@ node scripts/verify-i18n.js
 Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 499 localized keys.
 
 ### Thesis Evaluation Dashboard
-Visit **http://localhost:3000/admin/evaluation** (logged in as `laila_admin`) to inspect:
+Visit **http://localhost:3000/admin/evaluation** (logged in as `raneem_admin`) to inspect:
 - **Continuous Compatibility Distributions**: Empirical analysis comparing TF-IDF, Sentence-BERT, and the Hybrid model across a standardized 36-pair KKU benchmark corpus.
 - **Discrimination Margins ($\Delta$)**: Verification of the hybrid model's ability to clearly separate qualified candidates from negative controls ($\Delta > 45\%$).
 - **LaTeX Thesis Exporter**: 1-click generation of publication-ready LaTeX tables (`tab:smartcv_evaluation`) directly formatted for Chapter 7 of the graduation thesis.

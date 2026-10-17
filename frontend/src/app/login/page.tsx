@@ -66,10 +66,10 @@ export default function LoginPage() {
               <Briefcase className="w-4 h-4 text-brand-600" />
               <div className="text-start">
                 <p className="leading-tight">
-                  <bdi>Sarah Al-Ghamdi</bdi>
+                  <bdi>Ghadi Mohammed Ali Asiri</bdi>
                 </p>
                 <p className="text-[10px] text-slate-500 font-normal">
-                  <span dir="ltr">@sarah_recruiter</span> &bull; {t.auth.loginAsRecruiter}
+                  <span dir="ltr">@ghadi_recruiter</span> &bull; {t.auth.loginAsRecruiter}
                 </p>
               </div>
             </div>
@@ -85,10 +85,10 @@ export default function LoginPage() {
               <UserCheck className="w-4 h-4 text-emerald-600" />
               <div className="text-start">
                 <p className="leading-tight">
-                  <bdi>Fahad Al-Qahtani</bdi>
+                  <bdi>Reema Yahya Alfaifi</bdi>
                 </p>
                 <p className="text-[10px] text-slate-500 font-normal">
-                  <span dir="ltr">@fahad_applicant</span> &bull; {t.auth.loginAsApplicant}
+                  <span dir="ltr">@reema_applicant</span> &bull; {t.auth.loginAsApplicant}
                 </p>
               </div>
             </div>
@@ -104,10 +104,10 @@ export default function LoginPage() {
               <ShieldCheck className="w-4 h-4 text-purple-600" />
               <div className="text-start">
                 <p className="leading-tight">
-                  <bdi>Laila Al-Asmari</bdi>
+                  <bdi>Raneem Khalid Alzhrani</bdi>
                 </p>
                 <p className="text-[10px] text-slate-500 font-normal">
-                  <span dir="ltr">@laila_admin</span> &bull; {t.auth.loginAsAdmin}
+                  <span dir="ltr">@raneem_admin</span> &bull; {t.auth.loginAsAdmin}
                 </p>
               </div>
             </div>

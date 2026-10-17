@@ -16,24 +16,24 @@ def test_root_and_health():
     assert health_resp.json()["status"] == "healthy"
 
 def test_login_and_token():
-    # 1. Login with username as Sarah (Recruiter)
+    # 1. Login with username as Ghadi (Recruiter)
     resp = client.post("/api/v1/auth/login-json", json={
-        "username": "sarah_recruiter",
+        "username": "ghadi_recruiter",
         "password": "password123"
     })
     assert resp.status_code == 200
     data = resp.json()
     assert "access_token" in data
-    assert data["user"]["username"] == "sarah_recruiter"
+    assert data["user"]["username"] == "ghadi_recruiter"
     assert data["user"]["role_type"] == "recruiter"
 
     # 2. Login with email fallback for backward compatibility
     resp_fallback = client.post("/api/v1/auth/login-json", json={
-        "username": "sarah.recruiter@tech.sa",
+        "username": "ghadi.recruiter@tech.sa",
         "password": "password123"
     })
     assert resp_fallback.status_code == 200
-    assert resp_fallback.json()["user"]["username"] == "sarah_recruiter"
+    assert resp_fallback.json()["user"]["username"] == "ghadi_recruiter"
 
 def test_jobs_api():
     resp = client.get("/api/v1/jobs/")
@@ -118,40 +118,40 @@ def test_matching_with_custom_weights():
     assert run_data["total_candidates"] > 0
 
 def test_end_to_end_personas():
-    # 1. Test Recruiter Persona: Sarah Al-Ghamdi with username
+    # 1. Test Recruiter Persona: Ghadi Mohammed Ali Asiri with username
     resp_sarah = client.post("/api/v1/auth/login-json", json={
-        "username": "sarah_recruiter",
+        "username": "ghadi_recruiter",
         "password": "password123"
     })
     assert resp_sarah.status_code == 200
     token_sarah = resp_sarah.json()["access_token"]
     assert resp_sarah.json()["user"]["role_type"] == "recruiter"
-    assert resp_sarah.json()["user"]["username"] == "sarah_recruiter"
+    assert resp_sarah.json()["user"]["username"] == "ghadi_recruiter"
 
-    # Sarah views jobs
+    # Ghadi views jobs
     jobs = client.get("/api/v1/jobs/", headers={"Authorization": f"Bearer {token_sarah}"}).json()
     assert len(jobs) > 0
 
-    # 2. Test Applicant Persona: Fahad Al-Qahtani with username
+    # 2. Test Applicant Persona: Reema Yahya Alfaifi with username
     resp_fahad = client.post("/api/v1/auth/login-json", json={
-        "username": "fahad_applicant",
+        "username": "reema_applicant",
         "password": "password123"
     })
     assert resp_fahad.status_code == 200
     assert resp_fahad.json()["user"]["role_type"] == "applicant"
-    assert resp_fahad.json()["user"]["username"] == "fahad_applicant"
+    assert resp_fahad.json()["user"]["username"] == "reema_applicant"
 
-    # 3. Test Admin Persona: Laila Al-Asmari with username
+    # 3. Test Admin Persona: Raneem Khalid Alzhrani with username
     resp_laila = client.post("/api/v1/auth/login-json", json={
-        "username": "laila_admin",
+        "username": "raneem_admin",
         "password": "admin123"
     })
     assert resp_laila.status_code == 200
     token_laila = resp_laila.json()["access_token"]
     assert resp_laila.json()["user"]["role_type"] == "admin"
-    assert resp_laila.json()["user"]["username"] == "laila_admin"
+    assert resp_laila.json()["user"]["username"] == "raneem_admin"
 
-    # Laila checks audit logs
+    # Raneem checks audit logs
     audit_resp = client.get("/api/v1/admin/audit-logs", headers={"Authorization": f"Bearer {token_laila}"})
     assert audit_resp.status_code == 200
     assert len(audit_resp.json()) > 0
@@ -227,9 +227,9 @@ def test_user_registration_and_validation():
     assert invalid_user.status_code == 422
 
 def test_recruiter_forbidden_from_uploading_resumes():
-    # 1. Login as Sarah (Recruiter)
+    # 1. Login as Ghadi (Recruiter)
     resp = client.post("/api/v1/auth/login-json", json={
-        "username": "sarah_recruiter",
+        "username": "ghadi_recruiter",
         "password": "password123"
     })
     assert resp.status_code == 200
@@ -248,9 +248,9 @@ def test_recruiter_forbidden_from_uploading_resumes():
     assert "recruiters are not permitted to upload" in upload_resp.json()["detail"].lower()
 
 def test_applicant_allowed_to_upload_resumes():
-    # 1. Login as Fahad (Applicant)
+    # 1. Login as Reema (Applicant)
     resp = client.post("/api/v1/auth/login-json", json={
-        "username": "fahad_applicant",
+        "username": "reema_applicant",
         "password": "password123"
     })
     assert resp.status_code == 200
@@ -259,14 +259,14 @@ def test_applicant_allowed_to_upload_resumes():
 
     # 2. Applicant can upload resumes
     unique_content = (
-        f"Fahad Al-Harbi\n"
-        f"Email: fahad.applicant.test@example.com | Phone: +966501234567\n"
+        f"Reema Yahya Alfaifi\n"
+        f"Email: reema.applicant.test@example.com | Phone: +966501234567\n"
         f"EDUCATION: Bachelor of Science in Computer Science, King Khalid University, 2025\n"
         f"CORE SKILLS: Python, Docker, SQL, FastAPI, PostgreSQL, Git, Machine Learning\n"
         f"EXPERIENCE & PROJECTS: Backend Developer Intern. Developed RESTful APIs and microservices. Test ID {uuid.uuid4()}"
     ).encode("utf-8")
     files = [
-        ("files", ("fahad_cv.txt", unique_content, "text/plain"))
+        ("files", ("reema_cv.txt", unique_content, "text/plain"))
     ]
     upload_resp = client.post(
         "/api/v1/resumes/upload",
@@ -282,9 +282,9 @@ def test_applicant_allowed_to_upload_resumes():
     client.delete(f"/api/v1/resumes/{resume_id}", headers=headers)
 
 def test_recruiter_parse_job_file():
-    # 1. Login as Sarah (Recruiter)
+    # 1. Login as Ghadi (Recruiter)
     resp = client.post("/api/v1/auth/login-json", json={
-        "username": "sarah_recruiter",
+        "username": "ghadi_recruiter",
         "password": "password123"
     })
     token = resp.json()["access_token"]
@@ -303,9 +303,9 @@ def test_recruiter_parse_job_file():
     assert "Python" in data["detected_skills"]
 
 def test_recruiter_create_job_via_file_upload():
-    # 1. Login as Sarah (Recruiter)
+    # 1. Login as Ghadi (Recruiter)
     resp = client.post("/api/v1/auth/login-json", json={
-        "username": "sarah_recruiter",
+        "username": "ghadi_recruiter",
         "password": "password123"
     })
     token = resp.json()["access_token"]
