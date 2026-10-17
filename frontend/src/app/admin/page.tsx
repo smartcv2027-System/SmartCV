@@ -57,6 +57,7 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
+        {/* Hidden for now:
         <div className="flex items-center gap-2">
           <Link
             href="/admin/evaluation"
@@ -65,6 +66,7 @@ export default function AdminDashboardPage() {
             <Brain className="w-4 h-4" /> {t.admin.runMlBenchmarkBtn}
           </Link>
         </div>
+        */}
       </div>
 
       {/* Stats KPI Grid */}
@@ -95,7 +97,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link
           href="/admin/audit-logs"
           className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-3 group"
@@ -132,6 +134,7 @@ export default function AdminDashboardPage() {
           </span>
         </Link>
 
+        {/* Hidden for now:
         <Link
           href="/admin/evaluation"
           className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-3 group"
@@ -149,6 +152,7 @@ export default function AdminDashboardPage() {
             {t.admin.runBenchmark} <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
           </span>
         </Link>
+        */}
       </div>
 
       {/* Recent System Events (Figure 5.2.1.8) */}
