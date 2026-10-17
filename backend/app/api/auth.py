@@ -141,6 +141,17 @@ def login_json(creds: UserLogin, db: Session = Depends(get_db)):
     user.last_login_at = datetime.utcnow()
     db.commit()
 
+    # Record login audit
+    log = AuditLog(
+        user_id=user.user_id,
+        action_type="USER_LOGIN",
+        entity_name="User",
+        entity_id=user.user_id,
+        description=f"User logged in: @{user.username} ({user.full_name})"
+    )
+    db.add(log)
+    db.commit()
+
     access_token = create_access_token(subject=user.user_id, role=user.role_type.value)
     return {
         "access_token": access_token,

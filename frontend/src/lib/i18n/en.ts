@@ -428,7 +428,7 @@ export const en = {
     aliasesHeader: "Aliases & Synonyms",
     skillTypeHeader: "Type",
     governanceBadge: "Technical Administration & Governance",
-    reviewPanelTitle: "Admin Review Panel (Laila)",
+    reviewPanelTitle: "Admin Review Panel",
     reviewPanelSubtitle: "System health monitoring, audit log traceability, skills taxonomy governance, and ML benchmarks.",
     runMlBenchmarkBtn: "Run ML Benchmark",
     totalUsers: "Total Users",

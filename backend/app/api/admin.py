@@ -101,6 +101,17 @@ def update_skill_taxonomy(
 
     db.commit()
     db.refresh(skill)
+
+    log = AuditLog(
+        user_id=current_user.user_id,
+        action_type="SKILL_UPDATED",
+        entity_name="Skill",
+        entity_id=skill.skill_id,
+        description=f"Admin updated skill '{skill.skill_name}' (type: {skill.skill_type}, active: {skill.is_active})."
+    )
+    db.add(log)
+    db.commit()
+
     return skill
 
 @router.delete("/skills/{skill_id}")

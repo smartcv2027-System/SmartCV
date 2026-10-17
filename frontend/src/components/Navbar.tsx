@@ -182,6 +182,7 @@ export const Navbar: React.FC = () => {
                     <Sparkles className="w-4 h-4" />
                     {t.nav.skillsTaxonomy}
                   </Link>
+                  {/* Hidden for now:
                   <Link
                     href="/admin/evaluation"
                     className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
@@ -193,6 +194,7 @@ export const Navbar: React.FC = () => {
                     <Brain className="w-4 h-4" />
                     {t.nav.evaluation}
                   </Link>
+                  */}
                 </>
               )}
             </nav>
@@ -485,6 +487,7 @@ export const Navbar: React.FC = () => {
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
 
+                {/* Hidden for now:
                 <Link
                   href="/admin/evaluation"
                   onClick={() => setIsDrawerOpen(false)}
@@ -500,6 +503,7 @@ export const Navbar: React.FC = () => {
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>
+                */}
               </>
             )}
           </div>

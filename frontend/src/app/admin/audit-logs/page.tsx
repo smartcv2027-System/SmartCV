@@ -97,12 +97,24 @@ export default function AuditLogsPage() {
             className="p-2 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:border-purple-500 bg-white font-medium"
           >
             <option value="">{t.admin.allActionTypes}</option>
-            <option value="MATCHING_EXECUTED">MATCHING_EXECUTED</option>
-            <option value="RESUME_UPLOADED">RESUME_UPLOADED</option>
-            <option value="JOB_CREATED">JOB_CREATED</option>
             <option value="USER_LOGIN">USER_LOGIN</option>
             <option value="USER_REGISTERED">USER_REGISTERED</option>
+            <option value="MATCHING_EXECUTED">MATCHING_EXECUTED</option>
+            <option value="JOB_APPLICATION_SUBMITTED">JOB_APPLICATION_SUBMITTED</option>
+            <option value="JOB_APPLICATION_STATUS_UPDATED">JOB_APPLICATION_STATUS_UPDATED</option>
+            <option value="JOB_APPLICATION_WITHDRAWN">JOB_APPLICATION_WITHDRAWN</option>
+            <option value="RESUME_UPLOADED">RESUME_UPLOADED</option>
+            <option value="RESUME_REPARSED">RESUME_REPARSED</option>
+            <option value="RESUMES_REPARSED_ALL">RESUMES_REPARSED_ALL</option>
+            <option value="RESUME_DELETED">RESUME_DELETED</option>
+            <option value="JOB_CREATED">JOB_CREATED</option>
+            <option value="JOB_CREATED_FROM_FILE">JOB_CREATED_FROM_FILE</option>
+            <option value="JOB_FILE_REPLACED">JOB_FILE_REPLACED</option>
+            <option value="JOB_DELETED">JOB_DELETED</option>
             <option value="SKILL_ADDED">SKILL_ADDED</option>
+            <option value="SKILL_UPDATED">SKILL_UPDATED</option>
+            <option value="SKILL_DELETED">SKILL_DELETED</option>
+            <option value="DATABASE_SEEDED_MULTI_TRACK">DATABASE_SEEDED_MULTI_TRACK</option>
           </select>
         </div>
       </div>
