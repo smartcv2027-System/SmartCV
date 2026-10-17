@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { api, Resume } from "@/lib/api";
+import { api, Resume, Job, JobApplication } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n";
 import {
   Users,
@@ -27,9 +27,13 @@ import { Pagination } from "@/components/Pagination";
 export default function CandidatePoolPage() {
   const { t, format } = useLanguage();
   const [resumes, setResumes] = useState<Resume[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkillFilter, setSelectedSkillFilter] = useState<string | null>(null);
+  const [selectedJobFilter, setSelectedJobFilter] = useState<string>("all");
+  const [appStatusFilter, setAppStatusFilter] = useState<string>("all");
   const [selectedResume, setSelectedResume] = useState<Resume | null>(null);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -109,14 +113,43 @@ export default function CandidatePoolPage() {
   async function loadResumes() {
     try {
       setLoading(true);
-      const data = await api.getResumes();
-      setResumes(data);
+      const [resumesData, jobsData] = await Promise.all([
+        api.getResumes(),
+        api.getJobs(),
+      ]);
+      setResumes(resumesData);
+      setJobs(jobsData);
+
+      // Fetch applications across all recruiter jobs
+      if (jobsData.length > 0) {
+        const settled = await Promise.allSettled(
+          jobsData.map((j) => api.getJobApplications(j.job_id))
+        );
+        const allApps: JobApplication[] = [];
+        settled.forEach((r) => {
+          if (r.status === "fulfilled" && Array.isArray(r.value)) {
+            allApps.push(...r.value);
+          }
+        });
+        setApplications(allApps);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   }
+
+  // Group applications by candidate_id for fast lookup
+  const candidateAppsMap = useMemo(() => {
+    const map = new Map<number, JobApplication[]>();
+    applications.forEach((app) => {
+      const existing = map.get(app.candidate_id) || [];
+      existing.push(app);
+      map.set(app.candidate_id, existing);
+    });
+    return map;
+  }, [applications]);
 
   // Get top skills across all resumes for quick filtering
   const allSkills = useMemo(() => {
@@ -150,14 +183,35 @@ export default function CandidatePoolPage() {
         parsedStatusFilter === "all" ||
         (r.parsed_status && r.parsed_status.toLowerCase() === parsedStatusFilter.toLowerCase());
 
-      return matchesSearch && matchesSkill && matchesStatus;
+      const candApps = candidateAppsMap.get(r.candidate_id) || [];
+
+      // Filter by specific job opening
+      const matchesJob =
+        selectedJobFilter === "all" ||
+        (selectedJobFilter === "any_job" && candApps.length > 0) ||
+        (selectedJobFilter === "no_job" && candApps.length === 0) ||
+        candApps.some(a => String(a.job_id) === selectedJobFilter);
+
+      // Filter by application lifecycle status (either within the selected job or across any job)
+      const relevantApps =
+        selectedJobFilter !== "all" && selectedJobFilter !== "any_job" && selectedJobFilter !== "no_job"
+          ? candApps.filter(a => String(a.job_id) === selectedJobFilter)
+          : candApps;
+
+      const matchesAppStatus =
+        appStatusFilter === "all" ||
+        (appStatusFilter === "has_applied" && relevantApps.length > 0) ||
+        (appStatusFilter === "not_applied" && relevantApps.length === 0) ||
+        relevantApps.some(a => a.status?.toLowerCase() === appStatusFilter.toLowerCase());
+
+      return matchesSearch && matchesSkill && matchesStatus && matchesJob && matchesAppStatus;
     });
-  }, [resumes, searchQuery, selectedSkillFilter, parsedStatusFilter]);
+  }, [resumes, searchQuery, selectedSkillFilter, parsedStatusFilter, selectedJobFilter, appStatusFilter, candidateAppsMap]);
 
   // Reset to page 1 on filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedSkillFilter, parsedStatusFilter]);
+  }, [searchQuery, selectedSkillFilter, parsedStatusFilter, selectedJobFilter, appStatusFilter]);
 
   const paginatedResumes = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -281,7 +335,7 @@ export default function CandidatePoolPage() {
 
       {/* Candidate Search & Filter Toolbar */}
       <div className="p-4 rounded-2xl glass-card border border-slate-200 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
           <div className="relative flex-1 w-full">
             <Search className="w-4 h-4 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -302,25 +356,82 @@ export default function CandidatePoolPage() {
             )}
           </div>
 
-          <select
-            value={parsedStatusFilter}
-            onChange={(e) => setParsedStatusFilter(e.target.value)}
-            className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
-          >
-            <option value="all">{t.pagination.filterByStatus}</option>
-            <option value="parsed">{t.applicant.parsedAndActive}</option>
-            <option value="pending">Pending</option>
-          </select>
-
-          {selectedSkillFilter && (
-            <button
-              onClick={() => setSelectedSkillFilter(null)}
-              className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Filter by Job Opening */}
+            <select
+              value={selectedJobFilter}
+              onChange={(e) => setSelectedJobFilter(e.target.value)}
+              className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer max-w-[230px]"
             >
-              <span>{t.common.filter}: <strong className="text-brand-700">{selectedSkillFilter}</strong></span>
-              <X className="w-3 h-3" />
-            </button>
-          )}
+              <option value="all">
+                {t.common.activeLanguage === "العربية" ? "كل الوظائف (جميع المرشحين)" : "All Jobs (All Candidates)"}
+              </option>
+              <option value="any_job">
+                {t.common.activeLanguage === "العربية" ? "المتقدمون لوظيفة واحدة على الأقل" : "Applied to Any Job"}
+              </option>
+              <option value="no_job">
+                {t.common.activeLanguage === "العربية" ? "لم يتقدموا لأي وظيفة بعد" : "No Job Applications Yet"}
+              </option>
+              {jobs.map((j) => (
+                <option key={j.job_id} value={String(j.job_id)}>
+                  {t.common.activeLanguage === "العربية" ? `متقدمو: ${j.job_title}` : `Job: ${j.job_title}`}
+                </option>
+              ))}
+            </select>
+
+            {/* Filter by Application Status (Shortlisted, Screened, Applied, etc.) */}
+            <select
+              value={appStatusFilter}
+              onChange={(e) => setAppStatusFilter(e.target.value)}
+              className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            >
+              <option value="all">
+                {t.common.activeLanguage === "العربية" ? "كل حالات التقديم" : "All Application Statuses"}
+              </option>
+              <option value="shortlisted">
+                {t.common.activeLanguage === "العربية" ? "القائمة المختصرة (Shortlisted)" : "Shortlisted"}
+              </option>
+              <option value="screened">
+                {t.common.activeLanguage === "العربية" ? "تم الفرز بالذكاء الاصطناعي (Screened)" : "AI Screened"}
+              </option>
+              <option value="reviewed">
+                {t.common.activeLanguage === "العربية" ? "تمت المراجعة (Reviewed)" : "Reviewed"}
+              </option>
+              <option value="applied">
+                {t.common.activeLanguage === "العربية" ? "بانتظار الفرز (Applied)" : "Applied (Pending Screening)"}
+              </option>
+              <option value="rejected">
+                {t.common.activeLanguage === "العربية" ? "مرفوض (Rejected)" : "Rejected"}
+              </option>
+            </select>
+
+            {/* Filter by NLP Parsing Status */}
+            <select
+              value={parsedStatusFilter}
+              onChange={(e) => setParsedStatusFilter(e.target.value)}
+              className="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            >
+              <option value="all">{t.pagination.filterByStatus}</option>
+              <option value="parsed">{t.applicant.parsedAndActive}</option>
+              <option value="pending">Pending</option>
+            </select>
+
+            {(selectedSkillFilter || selectedJobFilter !== "all" || appStatusFilter !== "all" || parsedStatusFilter !== "all") && (
+              <button
+                onClick={() => {
+                  setSelectedSkillFilter(null);
+                  setSelectedJobFilter("all");
+                  setAppStatusFilter("all");
+                  setParsedStatusFilter("all");
+                  setSearchQuery("");
+                }}
+                className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>{t.common.activeLanguage === "العربية" ? "مسح الفلاتر" : "Reset Filters"}</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Top Skill Filter Pills */}
@@ -371,101 +482,144 @@ export default function CandidatePoolPage() {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-start text-xs">
+            <div className="w-full overflow-x-auto pb-2">
+              <table className="w-full min-w-[1050px] text-start text-xs">
                 <thead>
-                  <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] tracking-wider text-start">
+                  <tr className="border-b border-slate-200 text-slate-400 uppercase text-[10px] tracking-wider text-start whitespace-nowrap">
                     <th className="py-3 px-3 text-start">{t.recruiter.candidateNameHeader}</th>
                     <th className="py-3 px-3 text-start">{t.resumes.dropzoneTitle}</th>
-                    <th className="py-3 px-3 text-start">{t.common.status}</th>
+                    <th className="py-3 px-3 text-start">
+                      {t.common.activeLanguage === "العربية" ? "طلبات التوظيف والحالة" : "Job Applications & Status"}
+                    </th>
                     <th className="py-3 px-3 text-start">{t.resumes.extractedSkillsCount.replace(" ({count})", "")}</th>
                     <th className="py-3 px-3 text-start">{t.recruiter.dateHeader}</th>
                     <th className="py-3 px-3 text-end">{t.common.actions}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {paginatedResumes.map((res) => (
-                    <tr key={res.resume_id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3.5 px-3 font-bold text-slate-900">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-[10px]">
-                            <User className="w-3.5 h-3.5" />
-                          </div>
-                          <div>
-                            <div>
-                              <bdi>{res.candidate_name || `Candidate #${res.candidate_id}`}</bdi>
+                  {paginatedResumes.map((res) => {
+                    const candApps = candidateAppsMap.get(res.candidate_id) || [];
+                    const displayApps =
+                      selectedJobFilter !== "all" && selectedJobFilter !== "any_job" && selectedJobFilter !== "no_job"
+                        ? candApps.filter((a) => String(a.job_id) === selectedJobFilter)
+                        : candApps;
+
+                    const getStatusBadgeStyle = (status: string) => {
+                      switch (status.toLowerCase()) {
+                        case "shortlisted":
+                          return "bg-emerald-50 text-emerald-700 border-emerald-200";
+                        case "screened":
+                          return "bg-indigo-50 text-indigo-700 border-indigo-200";
+                        case "reviewed":
+                          return "bg-amber-50 text-amber-700 border-amber-200";
+                        case "rejected":
+                          return "bg-rose-50 text-rose-700 border-rose-200";
+                        default:
+                          return "bg-blue-50 text-blue-700 border-blue-200";
+                      }
+                    };
+
+                    return (
+                      <tr key={res.resume_id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3.5 px-3 font-bold text-slate-900 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-[10px] shrink-0">
+                              <User className="w-3.5 h-3.5" />
                             </div>
-                            <div className="text-[10px] text-slate-400 font-normal">ID: #{res.candidate_id}</div>
+                            <div>
+                              <div>
+                                <bdi>{res.candidate_name || `Candidate #${res.candidate_id}`}</bdi>
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-normal">ID: #{res.candidate_id}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3 text-slate-600 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <FileText className="w-3.5 h-3.5 text-slate-400" />
-                          <span><bdi>{res.resume_title || "resume.pdf"}</bdi></span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <span className="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-200 uppercase">
-                          {res.parsed_status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-3">
-                        <div className="flex flex-wrap gap-1 max-w-xs">
-                          {res.skills && res.skills.slice(0, 4).map((s) => (
-                            <span
-                              key={s.candidate_skill_id}
-                              onClick={() => setSelectedSkillFilter(s.skill_name)}
-                              className="cursor-pointer bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors"
-                            >
-                              <bdi>{s.skill_name}</bdi>
+                        </td>
+                        <td className="py-3.5 px-3 text-slate-600 font-medium whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <span><bdi>{res.resume_title || "resume.pdf"}</bdi></span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3 min-w-[220px]">
+                          {displayApps.length > 0 ? (
+                            <div className="flex flex-col gap-1 max-w-[240px]">
+                              {displayApps.slice(0, 2).map((app) => (
+                                <Link
+                                  key={app.application_id}
+                                  href={`/recruiter/jobs/${app.job_id}/applications`}
+                                  className="inline-flex items-center justify-between gap-1.5 px-2 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/80 text-[10px] transition-colors"
+                                  title={app.job_title}
+                                >
+                                  <span className="font-semibold text-slate-700 truncate">
+                                    <bdi>{app.job_title}</bdi>
+                                  </span>
+                                  <span className={`px-1.5 py-0.2 rounded font-bold uppercase border text-[9px] shrink-0 ${getStatusBadgeStyle(app.status)}`}>
+                                    {app.status}
+                                  </span>
+                                </Link>
+                              ))}
+                              {displayApps.length > 2 && (
+                                <span className="text-[10px] text-slate-400 font-medium ps-1">
+                                  +{displayApps.length - 2} {t.common.activeLanguage === "العربية" ? "وظائف أخرى" : "more jobs"}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic whitespace-nowrap">
+                              {t.common.activeLanguage === "العربية" ? "لم يتقدم بعد" : "No applications"}
                             </span>
-                          ))}
-                          {res.skills && res.skills.length > 4 && (
-                            <span className="text-[10px] text-slate-400">+{res.skills.length - 4}</span>
                           )}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-3 text-slate-500 font-mono text-[11px]">
-                        {res.created_at ? new Date(res.created_at).toLocaleDateString() : "Recent"}
-                      </td>
-                      <td className="py-3.5 px-3 text-end">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            onClick={() => handleReparseSingle(res.resume_id)}
-                            disabled={reparsingId === res.resume_id}
-                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                            title="Re-run NLP skill extraction"
-                          >
-                            <RefreshCw className={`w-3.5 h-3.5 ${reparsingId === res.resume_id ? "animate-spin text-purple-600" : "text-slate-500"}`} />
-                            <span className="hidden xl:inline">{reparsingId === res.resume_id ? t.common.loading : (t.common.activeLanguage === "العربية" ? "إعادة استخراج" : "Re-extract")}</span>
-                          </button>
-                          <button
-                            onClick={() => handleDownload(res.resume_id, res.resume_title)}
-                            disabled={downloadingId === res.resume_id}
-                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                            title="Download original CV document"
-                          >
-                            <Download className={`w-3.5 h-3.5 ${downloadingId === res.resume_id ? "animate-bounce text-brand-600" : ""}`} />
-                            <span className="hidden lg:inline">{t.common.activeLanguage === "العربية" ? "تحميل" : "Download"}</span>
-                          </button>
-                          <button
-                            onClick={() => setSelectedResume(res)}
-                            className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                          >
-                            <Eye className="w-3.5 h-3.5" /> {t.common.viewDetails}
-                          </button>
-                          <Link
-                            href={`/recruiter?candidate_id=${res.candidate_id}`}
-                            className="px-2.5 py-1.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold transition-all flex items-center gap-1"
-                          >
-                            <span>{t.recruiter.runMatchingBtn}</span>
-                            <ArrowUpRight className="w-3.5 h-3.5 rtl:rotate-180" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="py-3.5 px-3 min-w-[240px]">
+                          <div className="flex flex-wrap gap-1 max-w-xs">
+                            {res.skills && res.skills.slice(0, 4).map((s) => (
+                              <span
+                                key={s.candidate_skill_id}
+                                onClick={() => setSelectedSkillFilter(s.skill_name)}
+                                className="cursor-pointer bg-slate-100 hover:bg-brand-50 hover:text-brand-700 text-slate-700 text-[10px] px-1.5 py-0.5 rounded font-medium transition-colors whitespace-nowrap"
+                              >
+                                <bdi>{s.skill_name}</bdi>
+                              </span>
+                            ))}
+                            {res.skills && res.skills.length > 4 && (
+                              <span className="text-[10px] text-slate-400">+{res.skills.length - 4}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-3 text-slate-500 font-mono text-[11px] whitespace-nowrap">
+                          {res.created_at ? new Date(res.created_at).toLocaleDateString() : "Recent"}
+                        </td>
+                        <td className="py-3.5 px-3 text-end whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleReparseSingle(res.resume_id)}
+                              disabled={reparsingId === res.resume_id}
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-purple-50 hover:text-purple-700 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                              title="Re-run NLP skill extraction"
+                            >
+                              <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${reparsingId === res.resume_id ? "animate-spin text-purple-600" : "text-slate-500"}`} />
+                              <span>{reparsingId === res.resume_id ? t.common.loading : (t.common.activeLanguage === "العربية" ? "إعادة استخراج" : "Re-extract")}</span>
+                            </button>
+                            <button
+                              onClick={() => handleDownload(res.resume_id, res.resume_title)}
+                              disabled={downloadingId === res.resume_id}
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                              title="Download original CV document"
+                            >
+                              <Download className={`w-3.5 h-3.5 shrink-0 ${downloadingId === res.resume_id ? "animate-bounce text-brand-600" : ""}`} />
+                              <span>{t.common.activeLanguage === "العربية" ? "تحميل" : "Download"}</span>
+                            </button>
+                            <button
+                              onClick={() => setSelectedResume(res)}
+                              className="px-2.5 py-1.5 rounded-lg bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
+                            >
+                              <Eye className="w-3.5 h-3.5 shrink-0" /> {t.common.viewDetails}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
