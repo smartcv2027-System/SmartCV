@@ -12,7 +12,7 @@ import {
   Sparkles, 
   ArrowRight, 
   PlusCircle, 
-  UploadCloud, 
+  Users, 
   TrendingUp,
   Brain,
   Award
@@ -106,7 +106,7 @@ export default function RecruiterDashboard() {
             href="/recruiter/resumes"
             className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-all border border-white/10"
           >
-            <UploadCloud className="w-4 h-4" /> {t.recruiter.uploadResumesBtn}
+            <Users className="w-4 h-4" /> {t.recruiter.uploadResumesBtn}
           </Link>
           <Link
             href="/recruiter/jobs"
