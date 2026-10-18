@@ -33,6 +33,23 @@ class UserResponse(UserBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+class AdminUserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_]+$")
+    full_name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=6)
+    role_type: str = "applicant"
+    phone: Optional[str] = None
+    status: str = "active"
+
+class AdminUserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role_type: Optional[str] = None
+    phone: Optional[str] = None
+    status: Optional[str] = None
+    password: Optional[str] = None
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"

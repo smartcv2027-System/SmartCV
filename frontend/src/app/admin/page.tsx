@@ -97,7 +97,25 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Link
+          href="/admin/users"
+          className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-3 group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold">
+            <Users className="w-5 h-5" />
+          </div>
+          <h3 className="text-base font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors">
+            {t.admin.usersManagerTitle}
+          </h3>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            {t.admin.usersManagerDesc}
+          </p>
+          <span className="text-xs font-bold text-indigo-600 inline-flex items-center gap-1">
+            {t.admin.manageUsersBtn} <ArrowRight className="w-3.5 h-3.5 rtl:rotate-180 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform" />
+          </span>
+        </Link>
+
         <Link
           href="/admin/audit-logs"
           className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm hover:shadow-md transition-all space-y-3 group"

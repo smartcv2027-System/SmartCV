@@ -1,37 +1,51 @@
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from app.core.config import settings
 
-database_url = settings.SQLALCHEMY_DATABASE_URL
+def _build_engine():
+    database_url = settings.SQLALCHEMY_DATABASE_URL
 
-connect_args = {}
-engine_kwargs = {
-    "echo": False,
-}
+    if not settings.is_sqlite:
+        try:
+            test_kwargs = {
+                "echo": False,
+                "pool_pre_ping": True,
+            }
+            if settings.is_mysql:
+                test_kwargs["pool_size"] = 10
+                test_kwargs["max_overflow"] = 20
+                test_kwargs["pool_recycle"] = 3600
+                test_kwargs["connect_args"] = {"connect_timeout": 2}
+            elif settings.is_postgres_or_supabase:
+                test_kwargs["pool_size"] = 10
+                test_kwargs["max_overflow"] = 20
+                test_kwargs["connect_args"] = {"connect_timeout": 3}
 
-if settings.is_sqlite:
-    connect_args["check_same_thread"] = False
-    engine_kwargs["connect_args"] = connect_args
-elif settings.is_mysql:
-    # MySQL production pooling (recycles connections before MySQL 8-hour timeout)
-    engine_kwargs["pool_size"] = 10
-    engine_kwargs["max_overflow"] = 20
-    engine_kwargs["pool_recycle"] = 3600
-    engine_kwargs["pool_pre_ping"] = True
-elif settings.is_postgres_or_supabase:
-    # Supabase / PostgreSQL connection pooling (handles PgBouncer & direct connections)
-    engine_kwargs["pool_size"] = 10
-    engine_kwargs["max_overflow"] = 20
-    engine_kwargs["pool_pre_ping"] = True
+            candidate_engine = create_engine(database_url, **test_kwargs)
+            with candidate_engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            print(f"[DB] Connected to primary database ({'MySQL' if settings.is_mysql else 'PostgreSQL'}).")
+            return candidate_engine, False
+        except Exception as exc:
+            fallback_url = "sqlite:///./smartcv.db"
+            print(f"[DB WARNING] Primary database unreachable ({exc.__class__.__name__}). Falling back to SQLite ({fallback_url}).")
+            database_url = fallback_url
 
-engine = create_engine(database_url, **engine_kwargs)
+    sqlite_engine = create_engine(
+        database_url,
+        echo=False,
+        connect_args={"check_same_thread": False},
+    )
 
-if settings.is_sqlite:
-    @event.listens_for(engine, "connect")
+    @event.listens_for(sqlite_engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
+
+    return sqlite_engine, True
+
+engine, using_sqlite = _build_engine()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

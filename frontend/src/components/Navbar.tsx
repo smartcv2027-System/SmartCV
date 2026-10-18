@@ -152,13 +152,24 @@ export const Navbar: React.FC = () => {
                   <Link
                     href="/admin"
                     className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                      isActive("/admin") && !isActive("/admin/audit-logs") && !isActive("/admin/skills") && !isActive("/admin/evaluation")
+                      isActive("/admin") && !isActive("/admin/users") && !isActive("/admin/audit-logs") && !isActive("/admin/skills") && !isActive("/admin/evaluation")
                         ? "bg-brand-50 text-brand-700"
                         : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                     }`}
                   >
                     <Activity className="w-4 h-4" />
                     {t.nav.adminConsole}
+                  </Link>
+                  <Link
+                    href="/admin/users"
+                    className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                      isActive("/admin/users")
+                        ? "bg-brand-50 text-brand-700"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    {t.nav.manageUsers}
                   </Link>
                   <Link
                     href="/admin/audit-logs"
@@ -443,7 +454,7 @@ export const Navbar: React.FC = () => {
                   href="/admin"
                   onClick={() => setIsDrawerOpen(false)}
                   className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
-                    isActive("/admin") && !isActive("/admin/audit-logs") && !isActive("/admin/skills") && !isActive("/admin/evaluation")
+                    isActive("/admin") && !isActive("/admin/users") && !isActive("/admin/audit-logs") && !isActive("/admin/skills") && !isActive("/admin/evaluation")
                       ? "bg-brand-50 text-brand-700 font-bold"
                       : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
                   }`}
@@ -451,6 +462,22 @@ export const Navbar: React.FC = () => {
                   <div className="flex items-center gap-2.5">
                     <Activity className="w-4 h-4 text-purple-600" />
                     <span>{t.nav.adminConsole}</span>
+                  </div>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
+                </Link>
+
+                <Link
+                  href="/admin/users"
+                  onClick={() => setIsDrawerOpen(false)}
+                  className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                    isActive("/admin/users")
+                      ? "bg-brand-50 text-brand-700 font-bold"
+                      : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Users className="w-4 h-4 text-indigo-600" />
+                    <span>{t.nav.manageUsers}</span>
                   </div>
                   <ChevronRight className="w-3.5 h-3.5 text-slate-400 rtl:rotate-180" />
                 </Link>

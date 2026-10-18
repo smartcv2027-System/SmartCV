@@ -8,6 +8,7 @@ export interface User {
   role_type: "recruiter" | "applicant" | "admin";
   phone?: string;
   status: string;
+  last_login_at?: string;
   created_at: string;
 }
 
@@ -536,6 +537,74 @@ export const api = {
   },
 
   // Admin & Audit
+  async getUsers(roleFilter?: string, statusFilter?: string): Promise<User[]> {
+    const params = new URLSearchParams();
+    if (roleFilter && roleFilter !== "all") params.append("role_filter", roleFilter);
+    if (statusFilter && statusFilter !== "all") params.append("status_filter", statusFilter);
+    const qs = params.toString();
+    const url = qs ? `${API_BASE}/admin/users?${qs}` : `${API_BASE}/admin/users`;
+    const res = await fetch(url, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch users");
+    return res.json();
+  },
+
+  async createUserAdmin(userData: {
+    username: string;
+    full_name: string;
+    email: string;
+    password: string;
+    role_type: string;
+    phone?: string;
+    status?: string;
+  }): Promise<User> {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to create user");
+    }
+    return res.json();
+  },
+
+  async updateUserAdmin(
+    userId: number,
+    userData: {
+      full_name?: string;
+      email?: string;
+      role_type?: string;
+      phone?: string;
+      status?: string;
+      password?: string;
+    }
+  ): Promise<User> {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to update user");
+    }
+    return res.json();
+  },
+
+  async deleteUserAdmin(userId: number): Promise<void> {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to delete user");
+    }
+  },
+
   async getAuditLogs(actionFilter?: string): Promise<AuditLog[]> {
     const url = actionFilter
       ? `${API_BASE}/admin/audit-logs?action_filter=${actionFilter}`

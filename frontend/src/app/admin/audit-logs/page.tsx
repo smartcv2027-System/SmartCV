@@ -99,6 +99,9 @@ export default function AuditLogsPage() {
             <option value="">{t.admin.allActionTypes}</option>
             <option value="USER_LOGIN">USER_LOGIN</option>
             <option value="USER_REGISTERED">USER_REGISTERED</option>
+            <option value="USER_CREATED">USER_CREATED</option>
+            <option value="USER_UPDATED">USER_UPDATED</option>
+            <option value="USER_DELETED">USER_DELETED</option>
             <option value="MATCHING_EXECUTED">MATCHING_EXECUTED</option>
             <option value="JOB_APPLICATION_SUBMITTED">JOB_APPLICATION_SUBMITTED</option>
             <option value="JOB_APPLICATION_STATUS_UPDATED">JOB_APPLICATION_STATUS_UPDATED</option>
