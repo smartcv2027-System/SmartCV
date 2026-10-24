@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.ai.taxonomy import extract_skills_from_text
-from app.ai.parser import parse_document
+from app.ai.parser import parse_document, extract_profile_fields
 from app.core.security import create_access_token
 
 client = TestClient(app)
@@ -185,3 +185,30 @@ def test_reparse_endpoints_and_rbac(auth_tokens):
     all_data = resp_all.json()
     assert all_data["updated_count"] >= 14
 
+
+
+def test_extract_profile_fields_from_resume_text():
+    """Verify university, major, GPA, and career level are extracted from resume text."""
+    text = (
+        "Reema Al-Qahtani\n"
+        "Student ID: 444809769\n"
+        "\n"
+        "SUMMARY\n"
+        "Senior Information Systems student seeking an internship.\n"
+        "\n"
+        "EDUCATION\n"
+        "Bachelor of Science in Information Systems | King Khalid University, Abha, KSA\n"
+        "GPA: 4.78 / 5.0\n"
+    )
+    fields = extract_profile_fields(text)
+    assert fields["university"] == "King Khalid University"
+    assert fields["major"] == "Information Systems"
+    assert fields["gpa"] == "4.78 / 5.0"
+    assert fields["career_level"] == "Senior Student"
+    assert fields["student_id"] == "444809769"
+    assert fields["profile_summary"] == "Senior Information Systems student seeking an internship."
+
+def test_extract_profile_fields_missing_values_are_none():
+    """Verify fields not present in the resume are returned as None."""
+    fields = extract_profile_fields("Skills: Python, Docker, SQL")
+    assert all(value is None for value in fields.values())

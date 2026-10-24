@@ -34,7 +34,7 @@ import {
 import { Pagination } from "@/components/Pagination";
 
 export default function ApplicantPortalPage() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { confirm } = useConfirm();
   const { t } = useLanguage();
   const [resumes, setResumes] = useState<Resume[]>([]);
@@ -169,12 +169,16 @@ export default function ApplicantPortalPage() {
     try {
       const formData = new FormData();
       formData.append("files", file);
-      await api.uploadResumes(formData);
+      const uploaded = await api.uploadResumes(formData);
+      const updatedApps = uploaded?.[0]?.updated_applications_count || 0;
+      const successMsg = updatedApps > 0
+        ? format(t.applicant.uploadSuccessWithApps, { filename: file.name, count: updatedApps })
+        : format(t.applicant.uploadSuccess, { filename: file.name });
       setUploadStatus({
         type: "success",
-        message: format(t.applicant.uploadSuccess, { filename: file.name })
+        message: successMsg
       });
-      await loadData();
+      await Promise.all([loadData(), refreshUser()]);
     } catch (err: any) {
       setUploadStatus({
         type: "error",
@@ -196,7 +200,7 @@ export default function ApplicantPortalPage() {
         type: "success",
         message: format(t.applicant.reparseSuccess, { count: updated.skills?.length || 0 })
       });
-      await loadData();
+      await Promise.all([loadData(), refreshUser()]);
     } catch (err: any) {
       setUploadStatus({
         type: "error",
@@ -382,19 +386,27 @@ export default function ApplicantPortalPage() {
           <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
             <div className="flex justify-between">
               <span className="text-slate-400">{t.applicant.universityLabel}</span>
-              <span className="font-bold text-slate-800">{t.applicant.kkuName}</span>
+              <span className="font-bold text-slate-800">
+                {user?.candidate_profile?.university || t.common.noData}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">{t.applicant.majorLabel}</span>
-              <span className="font-bold text-slate-800">{t.applicant.isMajor}</span>
+              <span className="font-bold text-slate-800">
+                {user?.candidate_profile?.major || t.common.noData}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">{t.applicant.gpaLabel}</span>
-              <span className="font-bold text-emerald-600"><bdi dir="ltr">4.78 / 5.0</bdi></span>
+              <span className="font-bold text-emerald-600">
+                <bdi dir="ltr">{user?.candidate_profile?.gpa || t.common.noData}</bdi>
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">{t.applicant.statusLabel}</span>
-              <span className="font-bold text-slate-800">{t.applicant.seniorStudent}</span>
+              <span className="font-bold text-slate-800">
+                {user?.candidate_profile?.career_level || t.common.noData}
+              </span>
             </div>
           </div>
         </div>

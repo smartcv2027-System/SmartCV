@@ -1,6 +1,8 @@
 import os
+import re
 import hashlib
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
+from datetime import datetime
 import io
 
 def compute_checksum(file_bytes: bytes) -> str:
@@ -87,3 +89,104 @@ def parse_document(file_name: str, file_bytes: bytes) -> Tuple[str, str, int, st
             extracted_text = "Empty or unparseable document content."
 
     return extracted_text.strip(), file_type, file_size_kb, checksum
+
+
+_UNIVERSITY_RE = re.compile(
+    r"(?:[A-Z][A-Za-z&.'-]+[ \t]+){0,5}(?:University|College|Institute)"
+    r"(?:[ \t]+of[ \t]+[A-Z][A-Za-z&.'-]+(?:[ \t]+(?:and[ \t]+)?[A-Z][A-Za-z&.'-]+){0,4})?"
+    r"|جامعة[ \t]+[\u0600-\u06FF]+(?:[ \t]+[\u0600-\u06FF]+)?"
+)
+_MAJOR_DEGREE_RE = re.compile(
+    r"\b(?:Bachelor|Master|B\.?\s?Sc|M\.?\s?Sc|Diploma|Degree)\b[^\n|]*?\bin\s+"
+    r"([A-Z][A-Za-z&/ ]+?)\s*(?=\||,|\(|-|–|\bat\b|$)",
+    re.MULTILINE,
+)
+_MAJOR_LABEL_RE = re.compile(r"\b(?:Major|Specialization)\s*[:\-]\s*([^\n|,]+)", re.IGNORECASE)
+_GPA_RE = re.compile(
+    r"\bGPA\b\s*[:\-]?\s*(\d(?:\.\d{1,2})?)(?:\s*(?:/|out of)\s*(\d(?:\.\d{1,2})?))?",
+    re.IGNORECASE,
+)
+_CAREER_LEVELS = [
+    (re.compile(r"\b(?:fresh\s+graduate|خريج\s+جديد|حديث\s+التخرج)\b", re.IGNORECASE), "Fresh Graduate"),
+    (re.compile(r"\bsenior\s+(?:\w+\s+){0,3}student\b|\bطالب\s+سنة\s+أخيرة\b", re.IGNORECASE), "Senior Student"),
+    (re.compile(r"\b(?:junior|undergraduate)\s+(?:\w+\s+){0,3}student\b|\bexpected\s+graduation\b|\bطالب\s+جامعي\b", re.IGNORECASE), "Student"),
+    (re.compile(r"\b(?:graduated|alumn(?:us|a|i))\b", re.IGNORECASE), "Graduate"),
+]
+_GRAD_DATE_RE = re.compile(
+    r"\b(?:graduation|expected\s+graduation|تاريخ\s+التخرج)\s*[:\-]?\s*(?:[A-Za-z]+\s+)?(\d{4})\b",
+    re.IGNORECASE
+)
+_STUDENT_ID_RE = re.compile(
+    r"\b(?:Student|University)[ \t]*(?:ID|No\.?|Number)[ \t]*[:#\-]?[ \t]*([A-Za-z0-9-]{4,20})",
+    re.IGNORECASE,
+)
+_SUMMARY_HEADING_RE = re.compile(
+    r"^[ \t]*(?:PROFESSIONAL[ \t]+SUMMARY|CAREER[ \t]+OBJECTIVE|SUMMARY|PROFILE|OBJECTIVE|ABOUT[ \t]+ME|الملخص[ \t]+المهني|ملخص[ \t]+مهني|نبذة[ \t]+شخصية)[ \t]*:?[ \t]*\r?$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _extract_summary(text: str) -> Optional[str]:
+    """Returns the paragraph under a Summary/Profile/Objective heading, up to a blank line or the next heading."""
+    heading = _SUMMARY_HEADING_RE.search(text)
+    if not heading:
+        return None
+    lines = []
+    for line in text[heading.end():].lstrip("\r\n").splitlines():
+        stripped = line.strip()
+        if not stripped or (stripped.isupper() and len(stripped) > 3):
+            break
+        lines.append(stripped)
+    summary = " ".join(lines)
+    return summary[:1000] or None
+
+
+def extract_profile_fields(text: str) -> Dict[str, Optional[str]]:
+    """
+    Extracts candidate profile fields (university, major, gpa, career_level,
+    student_id, profile_summary) from resume text using regex heuristics.
+    Any field that cannot be found is None.
+    """
+    text = text or ""
+
+    uni_match = _UNIVERSITY_RE.search(text)
+    university = uni_match.group(0).strip() if uni_match else None
+
+    major = None
+    major_match = _MAJOR_DEGREE_RE.search(text) or _MAJOR_LABEL_RE.search(text)
+    if major_match:
+        major = major_match.group(1).strip()[:255] or None
+
+    gpa = None
+    gpa_match = _GPA_RE.search(text)
+    if gpa_match:
+        gpa = f"{gpa_match.group(1)} / {gpa_match.group(2)}" if gpa_match.group(2) else gpa_match.group(1)
+
+    career_level = next((level for pattern, level in _CAREER_LEVELS if pattern.search(text)), None)
+    if not career_level:
+        grad_match = _GRAD_DATE_RE.search(text)
+        if grad_match:
+            try:
+                grad_year = int(grad_match.group(1))
+                curr_year = datetime.now().year
+                if grad_year > curr_year:
+                    career_level = "Senior Student"
+                elif grad_year >= curr_year - 1:
+                    career_level = "Fresh Graduate"
+                else:
+                    career_level = "Graduate"
+            except Exception:
+                pass
+    if not career_level and re.search(r"\b(?:graduate|alumn(?:us|a|i)|خريج)\b", text, re.IGNORECASE):
+        career_level = "Fresh Graduate"
+
+    student_id_match = _STUDENT_ID_RE.search(text)
+
+    return {
+        "university": university[:255] if university else None,
+        "major": major,
+        "gpa": gpa,
+        "career_level": career_level,
+        "student_id": student_id_match.group(1) if student_id_match else None,
+        "profile_summary": _extract_summary(text),
+    }

@@ -4,10 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.models.models import Resume, UploadedFile, CandidateProfile, CandidateSkill, Skill, User, UserRole, AuditLog
+from app.models.models import Resume, UploadedFile, CandidateProfile, CandidateSkill, Skill, User, UserRole, AuditLog, JobApplication
 from app.schemas.schemas import ResumeResponse, CandidateSkillResponse
 from app.api.deps import get_current_user, require_roles
-from app.ai.parser import parse_document
+from app.ai.parser import parse_document, extract_profile_fields
 from app.ai.taxonomy import extract_skills_from_text
 from app.core.config import settings
 from app.core.file_utils import (
@@ -18,7 +18,7 @@ from app.core.file_utils import (
 
 router = APIRouter()
 
-def _format_resume_response(resume: Resume, db: Session) -> ResumeResponse:
+def _format_resume_response(resume: Resume, db: Session, updated_apps_count: int = 0) -> ResumeResponse:
     cand_name = "Anonymous Candidate"
     if resume.candidate and resume.candidate.user:
         cand_name = resume.candidate.user.full_name
@@ -45,7 +45,8 @@ def _format_resume_response(resume: Resume, db: Session) -> ResumeResponse:
         is_default=resume.is_default,
         created_at=resume.created_at,
         candidate_name=cand_name,
-        skills=skills_resp
+        skills=skills_resp,
+        updated_applications_count=updated_apps_count
     )
 
 @router.get("/", response_model=List[ResumeResponse])
@@ -324,6 +325,14 @@ async def upload_resumes(
         checksum = upload_data["checksum"]
         extracted_text = upload_data["extracted_text"]
 
+        # Validate that resume contains a PROFESSIONAL SUMMARY / SUMMARY section
+        profile_fields = extract_profile_fields(extracted_text)
+        if not profile_fields.get("profile_summary"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Resume missing 'PROFESSIONAL SUMMARY' section. Please include a Professional Summary in your resume to proceed."
+            )
+
         # If admin uploaded without target, create placeholder candidate
         if not cand_profile:
             extracted_name = os.path.splitext(file.filename)[0].replace("_", " ").replace("-", " ").title()
@@ -348,9 +357,9 @@ async def upload_resumes(
             if not cand_prof_new:
                 cand_prof_new = CandidateProfile(
                     user_id=temp_user.user_id,
-                    university="King Khalid University",
-                    major="Information Systems / Computer Science",
-                    career_level="Student / Fresh Graduate"
+                    university=None,
+                    major=None,
+                    career_level=None
                 )
                 db.add(cand_prof_new)
                 db.commit()
@@ -393,6 +402,12 @@ async def upload_resumes(
         db.refresh(up_file)
 
         # Create Resume record
+        # Only the newest resume is the candidate's default
+        db.query(Resume).filter(
+            Resume.candidate_id == assigned_candidate_id,
+            Resume.is_default == True
+        ).update({Resume.is_default: False}, synchronize_session=False)
+
         resume = Resume(
             candidate_id=assigned_candidate_id,
             file_id=up_file.file_id,
@@ -429,8 +444,21 @@ async def upload_resumes(
             )
             db.add(cand_skill)
 
+        # Update candidate profile fields from the newest resume (only fields the resume provides)
+        profile_to_fill = db.query(CandidateProfile).filter(CandidateProfile.candidate_id == assigned_candidate_id).first()
+        if profile_to_fill:
+            for field, value in profile_fields.items():
+                if value:
+                    setattr(profile_to_fill, field, value)
+
         db.commit()
         db.refresh(resume)
+
+        # Update open/pending job applications ('applied' status) to link to this new resume
+        updated_apps_count = db.query(JobApplication).filter(
+            JobApplication.candidate_id == assigned_candidate_id,
+            JobApplication.status == "applied"
+        ).update({JobApplication.resume_id: resume.resume_id}, synchronize_session=False)
 
         # Log Audit
         log = AuditLog(
@@ -438,12 +466,12 @@ async def upload_resumes(
             action_type="RESUME_UPLOADED",
             entity_name="Resume",
             entity_id=resume.resume_id,
-            description=f"Uploaded and parsed resume '{file.filename}' for candidate #{assigned_candidate_id} (extracted {len(extracted_skills)} skills)."
+            description=f"Uploaded and parsed resume '{file.filename}' for candidate #{assigned_candidate_id} (extracted {len(extracted_skills)} skills, transitioned {updated_apps_count} pending applications to new resume)."
         )
         db.add(log)
         db.commit()
 
-        results.append(_format_resume_response(resume, db))
+        results.append(_format_resume_response(resume, db, updated_apps_count=updated_apps_count))
 
     return results
 

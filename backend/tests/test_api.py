@@ -261,6 +261,8 @@ def test_applicant_allowed_to_upload_resumes():
     unique_content = (
         f"Reema Yahya Alfaifi\n"
         f"Email: reema.applicant.test@example.com | Phone: +966501234567\n"
+        f"PROFESSIONAL SUMMARY\n"
+        f"Information Systems student experienced in full-stack development and machine learning applications.\n"
         f"EDUCATION: Bachelor of Science in Computer Science, King Khalid University, 2025\n"
         f"CORE SKILLS: Python, Docker, SQL, FastAPI, PostgreSQL, Git, Machine Learning\n"
         f"EXPERIENCE & PROJECTS: Backend Developer Intern. Developed RESTful APIs and microservices. Test ID {uuid.uuid4()}"

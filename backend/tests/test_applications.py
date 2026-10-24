@@ -64,7 +64,7 @@ def test_applicant_apply_to_job_flow(auth_tokens):
         assert job_apps_resp.status_code == 200
         job_apps = job_apps_resp.json()
         assert len(job_apps) == 1
-        assert "Fahad" in job_apps[0]["candidate_name"]
+        assert "Reema" in job_apps[0]["candidate_name"]
 
         # Step 6: Candidate withdraws their application
         withdraw_resp = client.delete(f"/api/v1/applications/{app_id}", headers=fahad_headers)
@@ -109,7 +109,7 @@ def test_matching_requires_job_applications(auth_tokens):
         assert match_ok_resp.status_code == 200
         match_data = match_ok_resp.json()
         assert match_data["total_candidates"] == 1, f"Expected exactly 1 applicant, got {match_data['total_candidates']}"
-        assert "Fahad" in match_data["results"][0]["candidate_name"]
+        assert "Reema" in match_data["results"][0]["candidate_name"]
     finally:
         # Step 5: Clean up test job
         client.delete(f"/api/v1/jobs/{job_id}", headers=sarah_headers)

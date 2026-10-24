@@ -87,5 +87,8 @@ export const getLocalizedError = (err: any, t: Translations): string => {
   if (lower.includes("unsupported file") || lower.includes("allowed file formats")) {
     return t.errors.fileUnsupportedType;
   }
+  if (lower.includes("professional summary") || lower.includes("missing 'professional summary'")) {
+    return t.errors.missingSummary;
+  }
   return msg;
 };

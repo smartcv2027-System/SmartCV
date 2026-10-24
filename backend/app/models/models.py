@@ -55,9 +55,9 @@ class CandidateProfile(Base):
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
     student_id = Column(String(100), nullable=True)
     major = Column(String(255), nullable=True)
-    university = Column(String(255), default="King Khalid University")
+    university = Column(String(255), nullable=True)
     gpa = Column(String(20), nullable=True)
-    career_level = Column(String(50), default="Fresh Graduate / Student")
+    career_level = Column(String(50), nullable=True)
     profile_summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -297,3 +297,14 @@ class AuditLog(Base):
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")
+
+class EmailVerification(Base):
+    __tablename__ = "email_verifications"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    email = Column(String(255), index=True, nullable=False)
+    otp_code = Column(String(10), nullable=False)
+    attempts = Column(Integer, default=0)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+

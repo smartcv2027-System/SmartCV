@@ -2,6 +2,25 @@ from typing import List, Optional, Any, Dict
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
+# --- Candidate Profile Schemas ---
+class CandidateProfileBase(BaseModel):
+    student_id: Optional[str] = None
+    major: Optional[str] = None
+    university: Optional[str] = None
+    gpa: Optional[str] = None
+    career_level: Optional[str] = None
+    profile_summary: Optional[str] = None
+
+class CandidateProfileCreate(CandidateProfileBase):
+    pass
+
+class CandidateProfileResponse(CandidateProfileBase):
+    candidate_id: int
+    user_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
 # --- User & Auth Schemas ---
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=30, pattern=r"^[a-zA-Z0-9_]+$")
@@ -21,6 +40,16 @@ class UserRegister(BaseModel):
     role_type: str = "applicant"  # Restricted to applicant or recruiter during registration
     phone: Optional[str] = None
 
+class RequestOTPResponse(BaseModel):
+    message: str
+    email_masked: str
+    expires_in_seconds: int = 600
+
+class VerifyOTPRequest(BaseModel):
+    email: EmailStr
+    otp_code: str = Field(..., min_length=6, max_length=6)
+    registration_data: UserRegister
+
 class UserLogin(BaseModel):
     username: str = Field(..., description="Username or email address")
     password: str
@@ -30,6 +59,7 @@ class UserResponse(UserBase):
     status: str
     last_login_at: Optional[datetime] = None
     created_at: datetime
+    candidate_profile: Optional[CandidateProfileResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -58,25 +88,6 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: Optional[int] = None
     role: Optional[str] = None
-
-# --- Candidate Profile Schemas ---
-class CandidateProfileBase(BaseModel):
-    student_id: Optional[str] = None
-    major: Optional[str] = None
-    university: Optional[str] = "King Khalid University"
-    gpa: Optional[str] = None
-    career_level: Optional[str] = "Fresh Graduate / Student"
-    profile_summary: Optional[str] = None
-
-class CandidateProfileCreate(CandidateProfileBase):
-    pass
-
-class CandidateProfileResponse(CandidateProfileBase):
-    candidate_id: int
-    user_id: int
-    created_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
 
 # --- Skill Schemas ---
 class SkillBase(BaseModel):
@@ -205,6 +216,7 @@ class ResumeResponse(BaseModel):
     created_at: datetime
     candidate_name: Optional[str] = None
     skills: List[CandidateSkillResponse] = []
+    updated_applications_count: Optional[int] = 0
 
     model_config = ConfigDict(from_attributes=True)
 

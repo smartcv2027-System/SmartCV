@@ -9,7 +9,9 @@ interface AuthContextType {
   isLoading: boolean;
   login: (usernameOrEmail: string, pass: string) => Promise<void>;
   register: (data: RegisterData) => Promise<User>;
+  setSession: (token: string, user: User) => void;
   switchPersona: (role: "recruiter" | "applicant" | "admin") => Promise<void>;
+  refreshUser: () => Promise<User | null>;
   logout: () => void;
 }
 
@@ -87,10 +89,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const setSession = (newToken: string, newUser: User) => {
+    localStorage.setItem("smartcv_token", newToken);
+    localStorage.setItem("smartcv_user", JSON.stringify(newUser));
+    setToken(newToken);
+    setUser(newUser);
+  };
+
   const switchPersona = async (role: "recruiter" | "applicant" | "admin") => {
     const creds = DEMO_USERS[role];
     if (creds) {
       await login(creds.username, creds.pass);
+    }
+  };
+
+  const refreshUser = async (): Promise<User | null> => {
+    try {
+      const freshUser = await api.getMe();
+      localStorage.setItem("smartcv_user", JSON.stringify(freshUser));
+      setUser(freshUser);
+      return freshUser;
+    } catch {
+      return null;
     }
   };
 
@@ -102,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, switchPersona, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, setSession, switchPersona, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

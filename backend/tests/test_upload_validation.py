@@ -305,6 +305,8 @@ def test_candidate_resume_duplicate_detection(auth_tokens):
 
     resume_text = (
         "Fahad Al-Qahtani\n"
+        "PROFESSIONAL SUMMARY\n"
+        "Computer science graduate with strong skills in backend engineering and database systems.\n"
         "Education: BS in Computer Science, King Khalid University\n"
         "Skills: Python, FastAPI, Docker, SQL\n"
     ).encode("utf-8")
@@ -338,7 +340,14 @@ def test_resume_deletion_and_disk_cleanup(auth_tokens, second_applicant_token):
     fahad_headers = {"Authorization": f"Bearer {auth_tokens['applicant_fahad']}"}
     app2_headers = {"Authorization": f"Bearer {second_applicant_token}"}
 
-    resume_text = b"Candidate: Fahad Al-Qahtani\nEducation: KKU Computer Science\nSkills: React, TypeScript, Next.js\nExperience: Frontend Developer."
+    resume_text = (
+        b"Candidate: Fahad Al-Qahtani\n"
+        b"PROFESSIONAL SUMMARY\n"
+        b"Frontend developer with experience in React, TypeScript, and modern responsive web development.\n"
+        b"Education: KKU Computer Science\n"
+        b"Skills: React, TypeScript, Next.js\n"
+        b"Experience: Frontend Developer."
+    )
 
     # 1. Fahad uploads resume
     upload_resp = client.post(

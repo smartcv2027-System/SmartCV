@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { useLanguage, getLocalizedError } from "@/lib/i18n";
-import { 
-  Brain, Lock, Mail, User, Phone, ArrowRight, 
-  CheckCircle2, AlertCircle, Eye, EyeOff, Briefcase, GraduationCap, AtSign 
+import { useLanguage, format, getLocalizedError } from "@/lib/i18n";
+import { api } from "@/lib/api";
+import {
+  Brain, Lock, Mail, User, Phone, ArrowRight,
+  CheckCircle2, AlertCircle, Eye, EyeOff, Briefcase, GraduationCap, AtSign,
+  KeyRound, RefreshCw, X
 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, isLoading } = useAuth();
+  const { setSession } = useAuth();
   const { t } = useLanguage();
 
   const [username, setUsername] = useState("");
@@ -25,12 +27,47 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Client validation
+  // OTP Verification state
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [maskedEmail, setMaskedEmail] = useState("");
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Countdown timer for resend
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  // Client validation & Password Policy
   const usernameRegex = /^[a-zA-Z0-9_]{3,30}$/;
   const isUsernameValid = username.length === 0 || usernameRegex.test(username);
   const isPasswordMatch = confirmPassword.length === 0 || password === confirmPassword;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Password rules
+  const hasMinLength = password.length >= 8;
+  const hasUpper = /[A-Z]/.test(password);
+  const hasLower = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+  const hasSpecial = /[^A-Za-z0-9]/.test(password);
+  const isPasswordPolicyMet = hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+
+  const currentRegistrationData = {
+    username: username.trim(),
+    full_name: fullName.trim(),
+    email: email.trim(),
+    password,
+    role_type: roleType,
+    phone: phone.trim() || undefined,
+  };
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -44,11 +81,11 @@ export default function RegisterPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (!isPasswordPolicyMet) {
       setError(
         t.common.activeLanguage === "العربية"
-          ? "كلمة المرور يجب أن تتكون من 6 خانات على الأقل."
-          : "Password must be at least 6 characters long."
+          ? "يرجى استيفاء كافة شروط ومعايير كلمة المرور الموضحة أدناه."
+          : "Please satisfy all password policy criteria outlined below."
       );
       return;
     }
@@ -62,15 +99,53 @@ export default function RegisterPage() {
       return;
     }
 
+    setIsSendingOtp(true);
     try {
-      await register({
-        username: username.trim(),
-        full_name: fullName.trim(),
-        email: email.trim(),
-        password,
-        role_type: roleType,
-        phone: phone.trim() || undefined,
-      });
+      const res = await api.requestRegisterOTP(currentRegistrationData);
+      setMaskedEmail(res.email_masked || email.trim());
+      setShowOtpModal(true);
+      setResendCooldown(60);
+      setOtpCode("");
+      setOtpError(null);
+    } catch (err: any) {
+      setError(getLocalizedError(err, t));
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isSendingOtp) return;
+    setIsSendingOtp(true);
+    setOtpError(null);
+    try {
+      const res = await api.requestRegisterOTP(currentRegistrationData);
+      setMaskedEmail(res.email_masked || email.trim());
+      setResendCooldown(60);
+    } catch (err: any) {
+      setOtpError(getLocalizedError(err, t));
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOtpError(null);
+
+    if (otpCode.trim().length !== 6) {
+      setOtpError(
+        t.common.activeLanguage === "العربية"
+          ? "يرجى إدخال رمز التحقق المكون من 6 أرقام."
+          : "Please enter the 6-digit verification code."
+      );
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const authRes = await api.verifyRegisterOTP(email.trim(), otpCode.trim(), currentRegistrationData);
+      setSession(authRes.access_token, authRes.user);
 
       // Redirect to appropriate dashboard based on chosen role
       if (roleType === "recruiter") {
@@ -79,7 +154,9 @@ export default function RegisterPage() {
         router.push("/applicant");
       }
     } catch (err: any) {
-      setError(getLocalizedError(err, t));
+      setOtpError(getLocalizedError(err, t));
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -97,37 +174,40 @@ export default function RegisterPage() {
       </div>
 
       {/* Registration Form */}
-      <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl glass-card border border-slate-200 shadow-xs space-y-5">
+      <form onSubmit={handleRequestOtp} className="p-6 md:p-8 rounded-2xl glass-card border border-slate-200 shadow-xs space-y-5">
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{error}</span>
           </div>
         )}
 
         {/* Role Selection */}
         <div>
-          <label className="block text-xs font-bold text-slate-700 mb-2">{t.auth.selectRole}</label>
+          <label className="block text-xs font-bold text-slate-700 mb-2">
+            {t.auth.selectRole} <span className="text-rose-500">*</span>
+          </label>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setRoleType("applicant")}
-              className={`p-3.5 rounded-xl border text-start transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+              className={`p-3 rounded-xl border text-start transition-all flex items-center gap-3 cursor-pointer ${
                 roleType === "applicant"
-                  ? "bg-emerald-50/70 border-emerald-500 text-emerald-950 ring-2 ring-emerald-500/20"
-                  : "bg-white border-slate-200 hover:border-slate-300 text-slate-700"
+                  ? "border-brand-500 bg-brand-50/50 text-brand-900 ring-2 ring-brand-500/20"
+                  : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
               }`}
             >
-              <div className="flex items-center justify-between w-full">
-                <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-700">
-                  <GraduationCap className="w-4 h-4" />
-                </div>
-                {roleType === "applicant" && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                roleType === "applicant" ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"
+              }`}>
+                <GraduationCap className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs font-bold">{t.roles.applicant}</p>
-                <p className="text-[11px] text-slate-500">
-                  {t.common.activeLanguage === "العربية" ? "طالب / خريج باحث عن فرصة" : "Student / Job Seeker"}
+                <p className="text-xs font-bold leading-tight">
+                  {t.common.activeLanguage === "العربية" ? "طالب / خريج" : "Applicant / Student"}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {t.common.activeLanguage === "العربية" ? "بوابة الخريجين والتقديم" : "Apply & view matches"}
                 </p>
               </div>
             </button>
@@ -135,31 +215,27 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() => setRoleType("recruiter")}
-              className={`p-3.5 rounded-xl border text-start transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+              className={`p-3 rounded-xl border text-start transition-all flex items-center gap-3 cursor-pointer ${
                 roleType === "recruiter"
-                  ? "bg-brand-50/70 border-brand-500 text-brand-950 ring-2 ring-brand-500/20"
-                  : "bg-white border-slate-200 hover:border-slate-300 text-slate-700"
+                  ? "border-brand-500 bg-brand-50/50 text-brand-900 ring-2 ring-brand-500/20"
+                  : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
               }`}
             >
-              <div className="flex items-center justify-between w-full">
-                <div className="p-1.5 rounded-lg bg-brand-100 text-brand-700">
-                  <Briefcase className="w-4 h-4" />
-                </div>
-                {roleType === "recruiter" && <CheckCircle2 className="w-4 h-4 text-brand-600" />}
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                roleType === "recruiter" ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-500"
+              }`}>
+                <Briefcase className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs font-bold">{t.roles.recruiter}</p>
-                <p className="text-[11px] text-slate-500">
-                  {t.common.activeLanguage === "العربية" ? "إدارة المواهب والتوظيف" : "Talent Acquisition / HR"}
+                <p className="text-xs font-bold leading-tight">
+                  {t.common.activeLanguage === "العربية" ? "مسؤول توظيف" : "Recruiter"}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  {t.common.activeLanguage === "العربية" ? "نشر وظائف وفرز مرشحين" : "Post jobs & screen"}
                 </p>
               </div>
             </button>
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5 italic">
-            {t.common.activeLanguage === "العربية"
-              ? "* ملاحظة: حسابات مدراء النظام تُنشأ وتُدار مركزياً بواسطة إدارة الجامعة."
-              : "* Note: System Administrator accounts are restricted and provisioned by administrators only."}
-          </p>
         </div>
 
         {/* Username & Full Name */}
@@ -176,7 +252,7 @@ export default function RegisterPage() {
                 type="text"
                 autoComplete="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value.toLowerCase())}
+                onChange={(e) => setUsername(e.target.value)}
                 placeholder={t.auth.usernameInputPlaceholder}
                 required
                 className={`w-full ps-9 pe-3 py-2.5 rounded-xl border text-xs text-slate-800 focus:outline-none focus:ring-2 bg-white ${
@@ -189,8 +265,8 @@ export default function RegisterPage() {
             {!isUsernameValid && (
               <p className="text-[10px] text-rose-600 mt-1">
                 {t.common.activeLanguage === "العربية"
-                  ? "3–30 خانة، أحرف إنجليزية وأرقام وشرطة سفلية فقط."
-                  : "3–30 characters, letters, digits, and underscores only."}
+                  ? "اسم المستخدم يجب أن يكون بالإنجليزية والأرقام أو (_) فقط."
+                  : "Letters, numbers, or underscores only (3–30 chars)."}
               </p>
             )}
           </div>
@@ -276,7 +352,7 @@ export default function RegisterPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={t.auth.passwordPlaceholder}
                 required
-                minLength={6}
+                minLength={8}
                 className="w-full ps-9 pe-10 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-white"
               />
               <button
@@ -320,14 +396,40 @@ export default function RegisterPage() {
           </div>
         </div>
 
+        {/* Password Policy Checklist */}
+        <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+          <p className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5 text-brand-600" />
+            {t.auth.passwordPolicyTitle}
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+            <div className={`flex items-center gap-1.5 transition-colors ${hasMinLength ? 'text-emerald-700 font-medium' : 'text-slate-500'}`}>
+              <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${hasMinLength ? 'text-emerald-600' : 'text-slate-300'}`} />
+              <span>{t.auth.policyMinLength}</span>
+            </div>
+            <div className={`flex items-center gap-1.5 transition-colors ${hasUpper && hasLower ? 'text-emerald-700 font-medium' : 'text-slate-500'}`}>
+              <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${hasUpper && hasLower ? 'text-emerald-600' : 'text-slate-300'}`} />
+              <span>{t.auth.policyUpperLower}</span>
+            </div>
+            <div className={`flex items-center gap-1.5 transition-colors ${hasNumber ? 'text-emerald-700 font-medium' : 'text-slate-500'}`}>
+              <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${hasNumber ? 'text-emerald-600' : 'text-slate-300'}`} />
+              <span>{t.auth.policyNumber}</span>
+            </div>
+            <div className={`flex items-center gap-1.5 transition-colors ${hasSpecial ? 'text-emerald-700 font-medium' : 'text-slate-500'}`}>
+              <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${hasSpecial ? 'text-emerald-600' : 'text-slate-300'}`} />
+              <span>{t.auth.policySpecial}</span>
+            </div>
+          </div>
+        </div>
+
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isSendingOtp}
           className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer"
         >
-          {isLoading ? (
-            <span>{t.auth.creatingAccount}</span>
+          {isSendingOtp ? (
+            <span>{t.auth.sendingOtp}</span>
           ) : (
             <>
               <span>{t.auth.registerAction}</span>
@@ -346,6 +448,96 @@ export default function RegisterPage() {
           </p>
         </div>
       </form>
+
+      {/* 2-Step OTP Verification Modal */}
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5 relative">
+            <button
+              onClick={() => setShowOtpModal(false)}
+              className="absolute top-4 end-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-2 pt-2">
+              <div className="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 border border-brand-200/60 flex items-center justify-center mx-auto shadow-xs">
+                <KeyRound className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">
+                {t.auth.otpModalTitle}
+              </h3>
+              <p className="text-xs text-slate-500 leading-relaxed px-2">
+                {format(t.auth.otpModalSubtitle, { email: maskedEmail })}
+              </p>
+            </div>
+
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              {otpError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{otpError}</span>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 text-center">
+                  {t.auth.otpInputPlaceholder}
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  autoFocus
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="123456"
+                  className="w-full text-center tracking-[10px] text-2xl font-mono py-3 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 bg-slate-50 font-bold text-slate-800"
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <button
+                  type="button"
+                  disabled={resendCooldown > 0 || isSendingOtp}
+                  onClick={handleResendOtp}
+                  className="text-brand-600 hover:text-brand-700 font-bold disabled:text-slate-400 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSendingOtp ? "animate-spin" : ""}`} />
+                  <span>
+                    {resendCooldown > 0
+                      ? format(t.auth.resendIn, { seconds: resendCooldown })
+                      : t.auth.resendCode}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowOtpModal(false)}
+                  className="text-slate-500 hover:text-slate-700 text-xs"
+                >
+                  {t.auth.changeDetails}
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isVerifying || otpCode.length !== 6}
+                className="w-full py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50 cursor-pointer"
+              >
+                {isVerifying ? (
+                  <span>{t.auth.verifyingCode}</span>
+                ) : (
+                  <>
+                    <span>{t.auth.verifyAndCreate}</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-transform rtl:rotate-180" />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

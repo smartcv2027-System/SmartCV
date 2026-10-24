@@ -66,8 +66,8 @@ def create_user_admin(
     if role_enum == UserRole.APPLICANT:
         cand_prof = CandidateProfile(
             user_id=new_user.user_id,
-            university="King Khalid University",
-            career_level="Fresh Graduate / Student"
+            university=None,
+            career_level=None
         )
         db.add(cand_prof)
         db.commit()
@@ -118,8 +118,8 @@ def update_user_admin(
             if new_role == UserRole.APPLICANT and not target_user.candidate_profile:
                 db.add(CandidateProfile(
                     user_id=target_user.user_id,
-                    university="King Khalid University",
-                    career_level="Fresh Graduate / Student"
+                    university=None,
+                    career_level=None
                 ))
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid role_type.")

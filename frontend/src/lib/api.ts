@@ -1,5 +1,17 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+export interface CandidateProfile {
+  candidate_id: number;
+  user_id: number;
+  student_id?: string;
+  major?: string;
+  university?: string;
+  gpa?: string;
+  career_level?: string;
+  profile_summary?: string;
+  created_at: string;
+}
+
 export interface User {
   user_id: number;
   username: string;
@@ -10,6 +22,7 @@ export interface User {
   status: string;
   last_login_at?: string;
   created_at: string;
+  candidate_profile?: CandidateProfile;
 }
 
 export interface RegisterData {
@@ -96,6 +109,7 @@ export interface Resume {
   created_at: string;
   candidate_name?: string;
   skills: CandidateSkill[];
+  updated_applications_count?: number;
 }
 
 export interface MatchedSkillItem {
@@ -274,6 +288,36 @@ export const api = {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.detail || "Registration failed");
+    }
+    return res.json();
+  },
+
+  async requestRegisterOTP(data: RegisterData): Promise<{ message: string; email_masked: string; expires_in_seconds: number }> {
+    const res = await fetch(`${API_BASE}/auth/register/request-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Failed to request verification code");
+    }
+    return res.json();
+  },
+
+  async verifyRegisterOTP(email: string, otp_code: string, registration_data: RegisterData): Promise<AuthResponse> {
+    const res = await fetch(`${API_BASE}/auth/register/verify-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        otp_code,
+        registration_data
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Verification failed");
     }
     return res.json();
   },
