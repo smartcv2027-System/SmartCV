@@ -2,7 +2,7 @@
 
 **King Khalid University — College of Computer Science**  
 *Department of Informatics and Computer Systems (Academic Year 2025–26 / 1446–1447)*  
-*Project Supervised by: Dr. Areej Alshafi & Dr. Nada Alasbali*  
+*Project Supervised by: Dr. Areej Alshafi 
 *Authors: Ghadi Mohammed Ali Asiri (444809895), Reema Yahya Alfaifi (444809769), Raneem Khalid Alzhrani (444808554)*
 
 ---
