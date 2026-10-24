@@ -196,12 +196,6 @@ node scripts/verify-i18n.js
 ```
 Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 499 localized keys.
 
-### Thesis Evaluation Dashboard
-Visit **http://localhost:3000/admin/evaluation** (logged in as `raneem_admin`) to inspect:
-- **Continuous Compatibility Distributions**: Empirical analysis comparing TF-IDF, Sentence-BERT, and the Hybrid model across a standardized 36-pair KKU benchmark corpus.
-- **Discrimination Margins ($\Delta$)**: Verification of the hybrid model's ability to clearly separate qualified candidates from negative controls ($\Delta > 45\%$).
-- **LaTeX Thesis Exporter**: 1-click generation of publication-ready LaTeX tables (`tab:smartcv_evaluation`) directly formatted for Chapter 7 of the graduation thesis.
-- **Benchmark CSV Dataset**: Downloadable ground-truth corpus with all lexical, semantic, and hybrid compatibility scores.
 
 ---
 

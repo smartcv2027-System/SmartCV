@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { api, Job, Resume, JobRankingSummary, MatchResultDetail } from "@/lib/api";
+import { api, Job, Resume, JobRankingSummary, MatchResultDetail, JobApplication } from "@/lib/api";
 import { ScoreGauge } from "@/components/ScoreGauge";
 import { ExplanationModal } from "@/components/ExplanationModal";
 import { useLanguage } from "@/lib/i18n";
@@ -22,6 +22,7 @@ export default function RecruiterDashboard() {
   const { t, format } = useLanguage();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [resumes, setResumes] = useState<Resume[]>([]);
+  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [rankingsMap, setRankingsMap] = useState<Record<number, JobRankingSummary>>({});
   const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
   const [selectedResult, setSelectedResult] = useState<MatchResultDetail | null>(null);
@@ -40,17 +41,26 @@ export default function RecruiterDashboard() {
         if (jobsData.length > 0) {
           setSelectedJobId(jobsData[0].job_id);
 
-          // Fetch rankings across all active jobs in parallel for true top match computation
-          const settled = await Promise.allSettled(
-            jobsData.map((j) => api.getJobRanking(j.job_id))
-          );
+          // Fetch rankings and job applications across all active jobs in parallel
+          const [settledRankings, settledApps] = await Promise.all([
+            Promise.allSettled(jobsData.map((j) => api.getJobRanking(j.job_id))),
+            Promise.allSettled(jobsData.map((j) => api.getJobApplications(j.job_id)))
+          ]);
           const map: Record<number, JobRankingSummary> = {};
-          settled.forEach((res) => {
+          settledRankings.forEach((res) => {
             if (res.status === "fulfilled" && res.value) {
               map[res.value.job_id] = res.value;
             }
           });
           setRankingsMap(map);
+
+          const allApps: JobApplication[] = [];
+          settledApps.forEach((res) => {
+            if (res.status === "fulfilled" && Array.isArray(res.value)) {
+              allApps.push(...res.value);
+            }
+          });
+          setApplications(allApps);
         }
       } catch (err) {
         console.error("Failed to load recruiter dashboard data:", err);
@@ -60,6 +70,19 @@ export default function RecruiterDashboard() {
     }
     loadData();
   }, []);
+
+  // Only count resumes belonging to job applicants (submitted in an application or default resume of an applicant)
+  const applicantResumes = useMemo(() => {
+    const rIds = new Set<number>();
+    const cIds = new Set<number>();
+    applications.forEach((app) => {
+      if (app.resume_id) rIds.add(app.resume_id);
+      if (app.candidate_id) cIds.add(app.candidate_id);
+    });
+    return resumes.filter(
+      (r) => rIds.has(r.resume_id) || (cIds.has(r.candidate_id) && r.is_default)
+    );
+  }, [resumes, applications]);
 
   // Compute the absolute highest candidate match achieved across ALL active jobs
   const overallTopMatch = useMemo<MatchResultDetail | null>(() => {
@@ -122,7 +145,7 @@ export default function RecruiterDashboard() {
         <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t.recruiter.totalResumesParsed}</p>
-            <h3 className="text-3xl font-extrabold text-slate-900">{resumes.length}</h3>
+            <h3 className="text-3xl font-extrabold text-slate-900">{applicantResumes.length}</h3>
             <p className="text-[11px] text-emerald-600 font-medium">
               {t.common.activeLanguage === "العربية" ? "جاهزة للفرز الدلالي والمعجمي" : "Ready for semantic screening"}
             </p>
