@@ -2,7 +2,7 @@
 
 **King Khalid University — College of Computer Science**  
 *Department of Informatics and Computer Systems (Academic Year 2025–26 / 1446–1447)*  
-*Project Supervised by: Dr. Areej Alshafi 
+*Project Supervised by: Dr. Areej Alshafi*  
 *Authors: Ghadi Mohammed Ali Asiri (444809895), Reema Yahya Alfaifi (444809769), Raneem Khalid Alzhrani (444808554)*
 
 ---
@@ -17,8 +17,8 @@
    $$\text{Compatibility} = w_{\text{sbert}} \cdot S_{\text{semantic}} + w_{\text{tfidf}} \cdot S_{\text{lexical}} + w_{\text{skills}} \cdot S_{\text{skills}}$$
    *(Default: $50\%$ SBERT, $20\%$ TF-IDF, $30\%$ Skills — customizable by recruiters in real time).*
 4. **Explainable AI (XAI) & Structured Feedback Engine** — Verbatim resume quote citations for matched skills, identified skill gaps, and personalized curriculum recommendations for early-career students.
-5. **Role-Based Access Control (RBAC)** — Strictly demarcated workflows for **Recruiters**, **Applicants**, and **System Administrators** with 15 relational database tables and immutable audit logs.
-6. **Bilingual Arabic & English Support (i18n & RTL/LTR)** — Full internationalization across all 16 pages and modals, dynamic bidirectional layout switching, font pairing (`Cairo` for Arabic, `Inter` for English), and 100% key parity (499 keys).
+5. **Role-Based Access Control (RBAC)** — Strictly demarcated workflows for **Recruiters**, **Applicants**, and **System Administrators** with 16 relational database tables and immutable audit logs.
+6. **Bilingual Arabic & English Support (i18n & RTL/LTR)** — Full internationalization across all 16 pages and modals, dynamic bidirectional layout switching, font pairing (`Cairo` for Arabic, `Inter` for English), and 100% key parity (607 keys).
 7. **Document Validation Safeguards** — Multi-layer file security with 0-byte (empty file) rejection, 5 MB file size ceilings, MIME/extension verification, and stream rewind safety for resumes and job specifications.
 8. **Candidate Job Applications & Filtered Screening** — Applicants can explore open positions, submit 1-click applications with their active parsed CV, and track submission statuses. AI semantic screening strictly and exclusively evaluates candidates who submitted a job application for the target posting, with automated zero-applicant safety guards.
 
@@ -175,16 +175,17 @@ python backend/migrate_to_mysql.py
 ## Testing & Academic Evaluation
 
 ### Automated Backend Regression Suite
-Run the 50 backend unit, integration, and AI evaluation tests:
+Run the 59 backend unit, integration, and AI evaluation tests:
 ```bash
 cd backend
 .\.venv\Scripts\pytest -v
 ```
-All **50/50 tests pass (100%)** covering:
+All **59/59 tests pass (100%)** covering:
 - Authentication & JWT token validation
 - Role-based authorization & permission enforcement (RBAC)
 - Upload validation (whitelists, file replacement, duplicate detection, empty file rejection)
 - Structural ATS verification (CV and job description section validation)
+- Resume parsing, profile field extraction, and applicant-exclusive CV upload workflow
 - Job application lifecycle & applicant-exclusive matching (apply, duplicate prevention, withdrawal, 0-applicant rejection)
 - AI matching, Sentence-BERT strict mode, XAI explainability, and LaTeX generator
 
@@ -194,7 +195,7 @@ Verify 100% key parity across Arabic and English dictionaries:
 cd frontend
 node scripts/verify-i18n.js
 ```
-Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 499 localized keys.
+Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 607 localized keys.
 
 
 ---
@@ -207,8 +208,8 @@ SmartCV is production-ready for zero-cost cloud hosting ($0.00 / month forever) 
 |---|---|---|---|
 | **Frontend Web App** | **Vercel** | 100 GB Bandwidth, Global Edge CDN | Next.js 16.3.5 App Router |
 | **AI & Backend Service** | **Render.com** | 750 Instance Hours/Mo, 512 MB RAM | FastAPI + Sentence-BERT Engine |
-| **Cloud Relational DB** | **Supabase** | 500 MB PostgreSQL, Session Pooler | 15 Relational Tables & Audit Logs |
-| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 50 tests & deploys on `git push` |
+| **Cloud Relational DB** | **Supabase** | 500 MB PostgreSQL, Session Pooler | 16 Relational Tables & Audit Logs |
+| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 59 tests & deploys on `git push` |
 
 * **1-Click Backend Deployment**: Connect your GitHub repository to [Render.com](https://render.com) using the included [`render.yaml`](file:///d:/workspace/2026_2027/FirstSemester/KKU/SmartCV/SmartCV/render.yaml) Blueprint.
 * **1-Click Frontend Deployment**: Import the `frontend` folder into [Vercel](https://vercel.com) and set `NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api/v1`.
