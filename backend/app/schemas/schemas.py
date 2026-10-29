@@ -220,6 +220,50 @@ class ResumeResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class ResumeFileParseResponse(BaseModel):
+    suggested_title: str
+    candidate_name: Optional[str] = None
+    student_id: Optional[str] = None
+    university: Optional[str] = None
+    major: Optional[str] = None
+    gpa: Optional[str] = None
+    career_level: Optional[str] = None
+    profile_summary: Optional[str] = None
+    detected_skills: List[str] = []
+    extracted_text: str
+    file_name: str
+    file_size_kb: int
+    checksum: str
+    file_id: Optional[int] = None
+
+class ResumeSaveParsed(BaseModel):
+    resume_title: str
+    raw_text: str
+    file_id: Optional[int] = None
+    file_name: Optional[str] = None
+    file_size_kb: Optional[int] = None
+    checksum: Optional[str] = None
+    skills: List[str] = []
+    candidate_name: Optional[str] = None
+    student_id: Optional[str] = None
+    university: Optional[str] = None
+    major: Optional[str] = None
+    gpa: Optional[str] = None
+    career_level: Optional[str] = None
+    profile_summary: Optional[str] = None
+
+class ResumeUpdate(BaseModel):
+    resume_title: Optional[str] = None
+    raw_text: Optional[str] = None
+    skills: Optional[List[str]] = None
+    candidate_name: Optional[str] = None
+    student_id: Optional[str] = None
+    university: Optional[str] = None
+    major: Optional[str] = None
+    gpa: Optional[str] = None
+    career_level: Optional[str] = None
+    profile_summary: Optional[str] = None
+
 # --- Matching & Explainability Schemas ---
 class MatchedSkillItem(BaseModel):
     skill_id: int

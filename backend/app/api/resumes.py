@@ -5,7 +5,13 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.models.models import Resume, UploadedFile, CandidateProfile, CandidateSkill, Skill, User, UserRole, AuditLog, JobApplication
-from app.schemas.schemas import ResumeResponse, CandidateSkillResponse
+from app.schemas.schemas import (
+    ResumeResponse,
+    CandidateSkillResponse,
+    ResumeFileParseResponse,
+    ResumeSaveParsed,
+    ResumeUpdate
+)
 from app.api.deps import get_current_user, require_roles
 from app.ai.parser import parse_document, extract_profile_fields
 from app.ai.taxonomy import extract_skills_from_text
@@ -75,6 +81,176 @@ def get_resumes(
 
     resumes = query.order_by(Resume.created_at.desc()).all()
     return [_format_resume_response(r, db) for r in resumes]
+
+@router.post("/parse-file", response_model=ResumeFileParseResponse)
+async def parse_resume_file(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Parses an uploaded CV file (PDF, DOCX, TXT) on-the-fly and extracts
+    structured profile fields and detected skills for preview and editing.
+    Saves the file to disk and creates an UploadedFile record so it can be attached when saved.
+    """
+    upload_data = await validate_and_read_upload(file, expected_document_type="cv")
+    extracted_text = upload_data["extracted_text"]
+    checksum = upload_data["checksum"]
+
+    # Save physical file to disk
+    storage_path = save_file_to_disk(upload_data["storage_name"], upload_data["file_bytes"])
+
+    # Create UploadedFile record
+    up_file = UploadedFile(
+        uploaded_by=current_user.user_id,
+        file_name=upload_data["filename"],
+        file_type=upload_data["file_type"],
+        mime_type=upload_data["mime_type"],
+        storage_path=storage_path,
+        file_size_kb=upload_data["size_kb"],
+        checksum=checksum
+    )
+    db.add(up_file)
+    db.commit()
+    db.refresh(up_file)
+
+    profile_fields = extract_profile_fields(extracted_text)
+    db_skills = db.query(Skill).all()
+    custom_taxonomy = [
+        {"name": s.skill_name, "type": s.skill_type or "technical", "desc": s.description or f"{s.skill_name} skill"}
+        for s in db_skills
+    ]
+    detected = extract_skills_from_text(extracted_text, custom_taxonomy=custom_taxonomy)
+    skill_names = [s["skill_name"] for s in detected]
+
+    suggested_title = upload_data["filename"]
+    candidate_name = profile_fields.get("candidate_name") or current_user.full_name
+
+    return ResumeFileParseResponse(
+        suggested_title=suggested_title,
+        candidate_name=candidate_name,
+        student_id=profile_fields.get("student_id"),
+        university=profile_fields.get("university"),
+        major=profile_fields.get("major"),
+        gpa=profile_fields.get("gpa"),
+        career_level=profile_fields.get("career_level"),
+        profile_summary=profile_fields.get("profile_summary"),
+        detected_skills=skill_names,
+        extracted_text=extracted_text,
+        file_name=upload_data["filename"],
+        file_size_kb=upload_data["size_kb"],
+        checksum=checksum,
+        file_id=up_file.file_id
+    )
+
+@router.post("/save-parsed", response_model=ResumeResponse)
+def save_parsed_resume(
+    payload: ResumeSaveParsed,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Saves a reviewed/edited resume and candidate profile.
+    Updates candidate profile fields, attaches skills, links pending applications.
+    """
+    if current_user.role_type not in [UserRole.APPLICANT, UserRole.ADMIN]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only applicants can upload and save resumes."
+        )
+
+    cand_profile = db.query(CandidateProfile).filter(CandidateProfile.user_id == current_user.user_id).first()
+    if not cand_profile:
+        cand_profile = CandidateProfile(user_id=current_user.user_id)
+        db.add(cand_profile)
+        db.commit()
+        db.refresh(cand_profile)
+
+    assigned_candidate_id = cand_profile.candidate_id
+
+    # Update candidate profile fields
+    if payload.university is not None:
+        cand_profile.university = payload.university
+    if payload.major is not None:
+        cand_profile.major = payload.major
+    if payload.gpa is not None:
+        cand_profile.gpa = payload.gpa
+    if payload.career_level is not None:
+        cand_profile.career_level = payload.career_level
+    if payload.student_id is not None:
+        cand_profile.student_id = payload.student_id
+    if payload.profile_summary is not None:
+        cand_profile.profile_summary = payload.profile_summary
+
+    if payload.candidate_name and payload.candidate_name.strip() and current_user.full_name != payload.candidate_name.strip():
+        current_user.full_name = payload.candidate_name.strip()
+
+    # Deactivate previous default resumes
+    db.query(Resume).filter(
+        Resume.candidate_id == assigned_candidate_id,
+        Resume.is_default == True
+    ).update({Resume.is_default: False}, synchronize_session=False)
+
+    # Create Resume record
+    resume = Resume(
+        candidate_id=assigned_candidate_id,
+        file_id=payload.file_id,
+        resume_title=payload.resume_title or "Untitled Resume",
+        raw_text=payload.raw_text,
+        parsed_status="parsed",
+        is_default=True
+    )
+    db.add(resume)
+    db.commit()
+    db.refresh(resume)
+
+    # Process skills
+    if payload.skills:
+        for skill_name in payload.skills:
+            clean_name = skill_name.strip()
+            if not clean_name:
+                continue
+            skill = db.query(Skill).filter(Skill.skill_name.ilike(clean_name)).first()
+            if not skill:
+                skill = Skill(
+                    skill_name=clean_name,
+                    skill_type="technical",
+                    description=f"Skill: {clean_name}"
+                )
+                db.add(skill)
+                db.commit()
+                db.refresh(skill)
+
+            cand_skill = CandidateSkill(
+                candidate_id=assigned_candidate_id,
+                resume_id=resume.resume_id,
+                skill_id=skill.skill_id,
+                evidence_text="User verified and saved",
+                confidence_score=1.0,
+                source="user_verified"
+            )
+            db.add(cand_skill)
+
+    db.commit()
+    db.refresh(resume)
+
+    # Update pending applications
+    updated_apps_count = db.query(JobApplication).filter(
+        JobApplication.candidate_id == assigned_candidate_id,
+        JobApplication.status == "applied"
+    ).update({JobApplication.resume_id: resume.resume_id}, synchronize_session=False)
+
+    log = AuditLog(
+        user_id=current_user.user_id,
+        action_type="RESUME_UPLOADED",
+        entity_name="Resume",
+        entity_id=resume.resume_id,
+        description=f"Saved parsed resume '{resume.resume_title}' with {len(payload.skills)} skills for candidate #{assigned_candidate_id}."
+    )
+    db.add(log)
+    db.commit()
+
+    return _format_resume_response(resume, db, updated_apps_count=updated_apps_count)
 
 @router.get("/{resume_id}", response_model=ResumeResponse)
 def get_resume(
@@ -474,6 +650,231 @@ async def upload_resumes(
         results.append(_format_resume_response(resume, db, updated_apps_count=updated_apps_count))
 
     return results
+
+@router.put("/{resume_id}", response_model=ResumeResponse)
+def update_resume(
+    resume_id: int,
+    payload: ResumeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Updates an existing resume's title, text, candidate profile fields, and skills.
+    Only the owner (Applicant) or Admin can update.
+    """
+    resume = db.query(Resume).filter(Resume.resume_id == resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    if current_user.role_type == UserRole.APPLICANT:
+        if not current_user.candidate_profile or resume.candidate_id != current_user.candidate_profile.candidate_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to update this resume."
+            )
+
+    if payload.resume_title is not None and payload.resume_title.strip():
+        resume.resume_title = payload.resume_title.strip()
+    if payload.raw_text is not None:
+        resume.raw_text = payload.raw_text
+
+    # Update candidate profile if provided
+    cand_profile = resume.candidate
+    if cand_profile:
+        if payload.university is not None:
+            cand_profile.university = payload.university
+        if payload.major is not None:
+            cand_profile.major = payload.major
+        if payload.gpa is not None:
+            cand_profile.gpa = payload.gpa
+        if payload.career_level is not None:
+            cand_profile.career_level = payload.career_level
+        if payload.student_id is not None:
+            cand_profile.student_id = payload.student_id
+        if payload.profile_summary is not None:
+            cand_profile.profile_summary = payload.profile_summary
+        if payload.candidate_name and cand_profile.user and payload.candidate_name.strip():
+            cand_profile.user.full_name = payload.candidate_name.strip()
+
+    # Update skills if provided
+    if payload.skills is not None:
+        for cs in list(resume.candidate_skills):
+            db.delete(cs)
+        db.commit()
+
+        for skill_name in payload.skills:
+            clean_name = skill_name.strip()
+            if not clean_name:
+                continue
+            skill = db.query(Skill).filter(Skill.skill_name.ilike(clean_name)).first()
+            if not skill:
+                skill = Skill(
+                    skill_name=clean_name,
+                    skill_type="technical",
+                    description=f"Skill: {clean_name}"
+                )
+                db.add(skill)
+                db.commit()
+                db.refresh(skill)
+
+            cand_skill = CandidateSkill(
+                candidate_id=resume.candidate_id,
+                resume_id=resume.resume_id,
+                skill_id=skill.skill_id,
+                evidence_text="User updated and verified",
+                confidence_score=1.0,
+                source="user_verified"
+            )
+            db.add(cand_skill)
+
+    db.commit()
+    db.refresh(resume)
+
+    log = AuditLog(
+        user_id=current_user.user_id,
+        action_type="RESUME_UPDATED",
+        entity_name="Resume",
+        entity_id=resume.resume_id,
+        description=f"Updated resume #{resume.resume_id} '{resume.resume_title}'."
+    )
+    db.add(log)
+    db.commit()
+
+    return _format_resume_response(resume, db)
+
+@router.put("/{resume_id}/upload", response_model=ResumeResponse)
+async def replace_resume_file(
+    resume_id: int,
+    file: UploadFile = File(...),
+    resume_title: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Replaces the attached CV document for an existing resume.
+    Deletes old physical file, saves new file, updates text, skills, and profile fields.
+    """
+    resume = db.query(Resume).filter(Resume.resume_id == resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+
+    if current_user.role_type == UserRole.APPLICANT:
+        if not current_user.candidate_profile or resume.candidate_id != current_user.candidate_profile.candidate_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not authorized to replace file for this resume."
+            )
+
+    upload_data = await validate_and_read_upload(file, expected_document_type="cv")
+    checksum = upload_data["checksum"]
+    extracted_text = upload_data["extracted_text"]
+
+    # Reject identical file
+    if resume.file and resume.file.checksum == checksum:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The uploaded file is byte-for-byte identical to the current resume file."
+        )
+
+    # Delete previous physical file from disk if it exists
+    if resume.file and resume.file.storage_path:
+        delete_file_from_disk(resume.file.storage_path)
+
+    # Save new physical file
+    new_storage_path = save_file_to_disk(upload_data["storage_name"], upload_data["file_bytes"])
+
+    # Update or create UploadedFile record
+    if resume.file:
+        up_file = resume.file
+        up_file.file_name = upload_data["filename"]
+        up_file.file_type = upload_data["file_type"]
+        up_file.mime_type = upload_data["mime_type"]
+        up_file.storage_path = new_storage_path
+        up_file.file_size_kb = upload_data["size_kb"]
+        up_file.checksum = checksum
+        up_file.uploaded_by = current_user.user_id
+    else:
+        up_file = UploadedFile(
+            uploaded_by=current_user.user_id,
+            file_name=upload_data["filename"],
+            file_type=upload_data["file_type"],
+            mime_type=upload_data["mime_type"],
+            storage_path=new_storage_path,
+            file_size_kb=upload_data["size_kb"],
+            checksum=checksum
+        )
+        db.add(up_file)
+        db.commit()
+        db.refresh(up_file)
+        resume.file_id = up_file.file_id
+
+    # Update resume title and raw text
+    resume.raw_text = extracted_text
+    if resume_title and resume_title.strip():
+        resume.resume_title = resume_title.strip()
+    else:
+        resume.resume_title = upload_data["filename"]
+
+    # Re-extract and refresh skills
+    for old_cs in list(resume.candidate_skills):
+        db.delete(old_cs)
+    db.commit()
+
+    db_skills = db.query(Skill).all()
+    custom_taxonomy = [
+        {"name": s.skill_name, "type": s.skill_type or "technical", "desc": s.description or f"{s.skill_name} skill"}
+        for s in db_skills
+    ]
+    extracted_skills = extract_skills_from_text(extracted_text, custom_taxonomy=custom_taxonomy)
+    for s_data in extracted_skills:
+        skill = db.query(Skill).filter(Skill.skill_name.ilike(s_data["skill_name"])).first()
+        if not skill:
+            skill = Skill(
+                skill_name=s_data["skill_name"],
+                skill_type=s_data["skill_type"],
+                description=s_data.get("description")
+            )
+            db.add(skill)
+            db.commit()
+            db.refresh(skill)
+
+        cand_skill = CandidateSkill(
+            candidate_id=resume.candidate_id,
+            resume_id=resume.resume_id,
+            skill_id=skill.skill_id,
+            evidence_text=s_data.get("evidence_text"),
+            confidence_score=s_data.get("confidence_score", 1.0),
+            source="parsed"
+        )
+        db.add(cand_skill)
+
+    # Re-extract profile fields
+    profile_fields = extract_profile_fields(extracted_text)
+    if resume.candidate:
+        for field, value in profile_fields.items():
+            if value and hasattr(resume.candidate, field):
+                setattr(resume.candidate, field, value)
+
+    db.commit()
+    db.refresh(resume)
+
+    # Update pending applications
+    updated_apps_count = db.query(JobApplication).filter(
+        JobApplication.candidate_id == resume.candidate_id,
+        JobApplication.status == "applied"
+    ).update({JobApplication.resume_id: resume.resume_id}, synchronize_session=False)
+
+    log = AuditLog(
+        user_id=current_user.user_id,
+        action_type="RESUME_FILE_REPLACED",
+        entity_name="Resume",
+        entity_id=resume.resume_id,
+        description=f"Replaced CV file for resume #{resume.resume_id} with '{file.filename}'. Extracted {len(extracted_skills)} skills."
+    )
+    db.add(log)
+    db.commit()
+
+    return _format_resume_response(resume, db, updated_apps_count=updated_apps_count)
 
 @router.delete("/{resume_id}")
 def delete_resume(

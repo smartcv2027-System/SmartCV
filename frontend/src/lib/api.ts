@@ -34,6 +34,12 @@ export interface RegisterData {
   phone?: string;
 }
 
+export interface AuthResponse {
+  access_token: string;
+  user: User;
+  token_type?: string;
+}
+
 export interface JobSkill {
   job_skill_id: number;
   skill_id: number;
@@ -110,6 +116,53 @@ export interface Resume {
   candidate_name?: string;
   skills: CandidateSkill[];
   updated_applications_count?: number;
+}
+
+export interface ResumeFileParseResponse {
+  suggested_title: string;
+  candidate_name?: string;
+  student_id?: string;
+  university?: string;
+  major?: string;
+  gpa?: string;
+  career_level?: string;
+  profile_summary?: string;
+  detected_skills: string[];
+  extracted_text: string;
+  file_name: string;
+  file_size_kb: number;
+  checksum: string;
+  file_id?: number;
+}
+
+export interface ResumeSaveParsed {
+  resume_title: string;
+  raw_text: string;
+  file_id?: number;
+  file_name?: string;
+  file_size_kb?: number;
+  checksum?: string;
+  skills: string[];
+  candidate_name?: string;
+  student_id?: string;
+  university?: string;
+  major?: string;
+  gpa?: string;
+  career_level?: string;
+  profile_summary?: string;
+}
+
+export interface ResumeUpdate {
+  resume_title?: string;
+  raw_text?: string;
+  skills?: string[];
+  candidate_name?: string;
+  student_id?: string;
+  university?: string;
+  major?: string;
+  gpa?: string;
+  career_level?: string;
+  profile_summary?: string;
 }
 
 export interface MatchedSkillItem {
@@ -532,6 +585,63 @@ export const api = {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Failed to batch re-parse resumes");
     }
+    return res.json();
+  },
+
+  async parseResumeFile(formData: FormData): Promise<ResumeFileParseResponse> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("smartcv_token") : null;
+    const res = await fetch(`${API_BASE}/resumes/parse-file`, {
+      method: "POST",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || "Failed to parse resume file");
+    return res.json();
+  },
+
+  async saveParsedResume(data: ResumeSaveParsed): Promise<Resume> {
+    const res = await fetch(`${API_BASE}/resumes/save-parsed`, {
+      method: "POST",
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || "Failed to save parsed resume");
+    return res.json();
+  },
+
+  async updateResume(resumeId: number, data: ResumeUpdate): Promise<Resume> {
+    const res = await fetch(`${API_BASE}/resumes/${resumeId}`, {
+      method: "PUT",
+      headers: {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || "Failed to update resume");
+    return res.json();
+  },
+
+  async replaceResumeFile(resumeId: number, formData: FormData): Promise<Resume> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("smartcv_token") : null;
+    const res = await fetch(`${API_BASE}/resumes/${resumeId}/upload`, {
+      method: "PUT",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || "Failed to replace resume file");
+    return res.json();
+  },
+
+  async deleteResume(resumeId: number): Promise<{ message: string }> {
+    const res = await fetch(`${API_BASE}/resumes/${resumeId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || "Failed to delete resume");
     return res.json();
   },
 

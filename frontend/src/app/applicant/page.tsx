@@ -18,7 +18,6 @@ import {
   Lightbulb,
   UploadCloud,
   ChevronRight,
-  Download,
   RefreshCw,
   ShieldCheck,
   Briefcase,
@@ -29,9 +28,13 @@ import {
   Star,
   XCircle,
   Search,
-  Filter
+  Filter,
+  X,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
+import SkillTagInput from "@/components/SkillTagInput";
 
 export default function ApplicantPortalPage() {
   const { user, refreshUser } = useAuth();
@@ -44,10 +47,166 @@ export default function ApplicantPortalPage() {
   const [activeTab, setActiveTab] = useState<"applications" | "jobs">("applications");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [reparsing, setReparsing] = useState(false);
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
   const [uploadStatus, setUploadStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Upload CV Modal States (Requires CV file, no blank manual entry)
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [uploadModalFile, setUploadModalFile] = useState<File | null>(null);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [isSavingCv, setIsSavingCv] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [parseSuccess, setParseSuccess] = useState<string | null>(null);
+
+  // Parsed / Editable Form States
+  const [cvTitle, setCvTitle] = useState("");
+  const [candidateName, setCandidateName] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [university, setUniversity] = useState("");
+  const [major, setMajor] = useState("");
+  const [gpa, setGpa] = useState("");
+  const [careerLevel, setCareerLevel] = useState("Entry Level");
+  const [summary, setSummary] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [rawText, setRawText] = useState("");
+  const [fileId, setFileId] = useState<number | undefined>(undefined);
+  const [fileName, setFileName] = useState<string | undefined>(undefined);
+  const [fileSizeKb, setFileSizeKb] = useState<number | undefined>(undefined);
+  const [checksum, setChecksum] = useState<string | undefined>(undefined);
+  const [isRawTextOpen, setIsRawTextOpen] = useState(false);
+
+  const validateCvDocumentFile = (file: File): string | null => {
+    if (file.size === 0) {
+      return t.errors.fileEmpty;
+    }
+    const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return t.errors.fileTooLarge;
+    }
+    const allowedExtensions = [".pdf", ".docx", ".txt"];
+    const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      return t.errors.fileUnsupportedType;
+    }
+    return null;
+  };
+
+  const handleOpenUploadModal = () => {
+    setUploadModalFile(null);
+    setIsParsingFile(false);
+    setIsSavingCv(false);
+    setParseError(null);
+    setParseSuccess(null);
+    setCvTitle("");
+    setCandidateName(user?.full_name || "");
+    setStudentId(user?.candidate_profile?.student_id || "");
+    setUniversity(user?.candidate_profile?.university || "");
+    setMajor(user?.candidate_profile?.major || "");
+    setGpa(user?.candidate_profile?.gpa || "");
+    setCareerLevel(user?.candidate_profile?.career_level || "Entry Level");
+    setSummary(user?.candidate_profile?.profile_summary || "");
+    setSkills([]);
+    setRawText("");
+    setFileId(undefined);
+    setFileName(undefined);
+    setFileSizeKb(undefined);
+    setChecksum(undefined);
+    setIsRawTextOpen(false);
+    setIsUploadModalOpen(true);
+  };
+
+  const handleSelectCvFile = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const file = fileList[0];
+    const validationError = validateCvDocumentFile(file);
+    if (validationError) {
+      setParseError(validationError);
+      setUploadModalFile(null);
+      return;
+    }
+
+    setUploadModalFile(file);
+    setIsParsingFile(true);
+    setParseError(null);
+    setParseSuccess(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const parsed = await api.parseResumeFile(formData);
+
+      setCvTitle(parsed.suggested_title || file.name);
+      setCandidateName(parsed.candidate_name || user?.full_name || "");
+      setStudentId(parsed.student_id || user?.candidate_profile?.student_id || "");
+      setUniversity(parsed.university || user?.candidate_profile?.university || "");
+      setMajor(parsed.major || user?.candidate_profile?.major || "");
+      setGpa(parsed.gpa || user?.candidate_profile?.gpa || "");
+      setCareerLevel(parsed.career_level || user?.candidate_profile?.career_level || "Entry Level");
+      setSummary(parsed.profile_summary || user?.candidate_profile?.profile_summary || "");
+      setSkills(parsed.detected_skills || []);
+      setRawText(parsed.extracted_text || "");
+      setFileId(parsed.file_id);
+      setFileName(parsed.file_name);
+      setFileSizeKb(parsed.file_size_kb);
+      setChecksum(parsed.checksum);
+
+      setParseSuccess(
+        t.common.activeLanguage === "العربية"
+          ? `تم استخراج محتوى السيرة بنجاح! تم رصد ${parsed.detected_skills?.length || 0} مهارة موثقة.`
+          : `CV parsed successfully! Detected ${parsed.detected_skills?.length || 0} target skills.`
+      );
+    } catch (err: any) {
+      setParseError(getLocalizedError(err, t));
+      setUploadModalFile(null);
+    } finally {
+      setIsParsingFile(false);
+    }
+  };
+
+  const handleSaveParsedCv = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadModalFile && !rawText) {
+      setParseError(t.applicant.fileRequiredNotice);
+      return;
+    }
+
+    setIsSavingCv(true);
+    setParseError(null);
+    try {
+      const saved = await api.saveParsedResume({
+        resume_title: cvTitle || uploadModalFile?.name || "My_Resume.pdf",
+        raw_text: rawText,
+        file_id: fileId,
+        file_name: fileName || uploadModalFile?.name,
+        file_size_kb: fileSizeKb,
+        checksum: checksum,
+        skills: skills,
+        candidate_name: candidateName,
+        student_id: studentId,
+        university: university,
+        major: major,
+        gpa: gpa,
+        career_level: careerLevel,
+        profile_summary: summary
+      });
+
+      setIsUploadModalOpen(false);
+      setUploadModalFile(null);
+      setParseSuccess(null);
+      setUploadStatus({
+        type: "success",
+        message: saved.updated_applications_count && saved.updated_applications_count > 0
+          ? format(t.applicant.uploadSuccessWithApps, { filename: saved.resume_title || "CV", count: saved.updated_applications_count })
+          : format(t.applicant.uploadSuccess, { filename: saved.resume_title || "CV" })
+      });
+      await Promise.all([loadData(), refreshUser()]);
+    } catch (err: any) {
+      setParseError(getLocalizedError(err, t));
+    } finally {
+      setIsSavingCv(false);
+    }
+  };
 
   // Tab 1 (Applications) Filtering & Pagination
   const [searchApps, setSearchApps] = useState("");
@@ -190,27 +349,6 @@ export default function ApplicantPortalPage() {
     }
   };
 
-  const handleReparse = async () => {
-    if (!defaultResume) return;
-    try {
-      setReparsing(true);
-      setUploadStatus(null);
-      const updated = await api.reparseResume(defaultResume.resume_id);
-      setUploadStatus({
-        type: "success",
-        message: format(t.applicant.reparseSuccess, { count: updated.skills?.length || 0 })
-      });
-      await Promise.all([loadData(), refreshUser()]);
-    } catch (err: any) {
-      setUploadStatus({
-        type: "error",
-        message: getLocalizedError(err, t)
-      });
-    } finally {
-      setReparsing(false);
-    }
-  };
-
   const handleApply = async (job: Job) => {
     if (!defaultResume) {
       setUploadStatus({
@@ -326,18 +464,14 @@ export default function ApplicantPortalPage() {
         </div>
 
         <div>
-          <label className="cursor-pointer px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all">
+          <button
+            type="button"
+            onClick={handleOpenUploadModal}
+            className="cursor-pointer px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-md transition-all"
+          >
             <UploadCloud className="w-4 h-4" />
-            <span>{uploading ? t.applicant.uploadingAndParsing : t.applicant.uploadResumeBtn}</span>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.docx,.txt"
-              className="hidden"
-              disabled={uploading}
-              onChange={handleUploadResume}
-            />
-          </label>
+            <span>{t.applicant.uploadResumeBtn}</span>
+          </button>
         </div>
       </div>
 
@@ -424,23 +558,6 @@ export default function ApplicantPortalPage() {
                     </h3>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={handleReparse}
-                      disabled={reparsing}
-                      className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold transition-all flex items-center gap-1.5 border border-purple-200 disabled:opacity-60 cursor-pointer"
-                      title="Re-run structural verification & skill extraction"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${reparsing ? "animate-spin text-purple-600" : "text-purple-500"}`} />
-                      <span>{reparsing ? t.applicant.reparsingBtn : t.applicant.reparseBtn}</span>
-                    </button>
-                    <button
-                      onClick={() => api.downloadResumeFile(defaultResume.resume_id, defaultResume.resume_title)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                      title="Download uploaded CV"
-                    >
-                      <Download className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{t.applicant.downloadCvBtn}</span>
-                    </button>
                     <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
                       <ShieldCheck className="w-3 h-3 text-blue-600" />
                       {t.applicant.atsVerified}
@@ -508,12 +625,12 @@ export default function ApplicantPortalPage() {
 
                 <div className="pt-1">
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
+                    type="button"
+                    onClick={handleOpenUploadModal}
                     className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm transition-all"
                   >
                     <UploadCloud className="w-4 h-4" />
-                    <span>{uploading ? t.applicant.uploadingAndParsing : t.applicant.uploadResumePromptBtn}</span>
+                    <span>{t.applicant.uploadResumePromptBtn}</span>
                   </button>
                 </div>
               </div>
@@ -951,6 +1068,276 @@ export default function ApplicantPortalPage() {
               />
             </>
           )}
+        </div>
+      )}
+
+      {/* 1. Upload & Parse CV Modal (Strictly requires CV file, no blank manual entry) */}
+      {isUploadModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in duration-200 my-auto">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">{t.applicant.uploadModalTitle}</h3>
+                  <p className="text-[11px] text-slate-500">{t.applicant.uploadModalSubtitle}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsUploadModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+                aria-label={t.common.close}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
+              {/* Errors & Notices */}
+              {parseError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{parseError}</span>
+                </div>
+              )}
+
+              {/* Step 1: File Dropzone (Required) */}
+              {!uploadModalFile ? (
+                <div className="space-y-3">
+                  <label
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handleSelectCvFile(e.dataTransfer.files);
+                    }}
+                    className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                      isParsingFile
+                        ? "border-emerald-300 bg-emerald-50/50 cursor-wait"
+                        : "border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/20"
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.txt"
+                      className="hidden"
+                      disabled={isParsingFile}
+                      onChange={(e) => handleSelectCvFile(e.target.files)}
+                    />
+                    {isParsingFile ? (
+                      <div className="space-y-3 flex flex-col items-center py-4">
+                        <RefreshCw className="w-8 h-8 text-emerald-600 animate-spin" />
+                        <span className="text-xs font-bold text-slate-700">{t.applicant.parsingCvNotice}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-3">
+                          <UploadCloud className="w-6 h-6" />
+                        </div>
+                        <h4 className="text-sm font-extrabold text-slate-800">{t.applicant.dropzoneCvTitle}</h4>
+                        <p className="text-xs text-slate-500 mt-1 max-w-sm">{t.applicant.dropzoneCvSubtitle}</p>
+                        <span className="mt-4 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-xs hover:bg-slate-800 transition-all">
+                          {t.resumes.browseFilesBtn}
+                        </span>
+                      </>
+                    )}
+                  </label>
+                </div>
+              ) : (
+                /* Step 2: Review & Edit Parsed CV Data */
+                <form id="save-parsed-cv-form" onSubmit={handleSaveParsedCv} className="space-y-4">
+                  {/* File Badge with Change button */}
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <div className="text-xs font-bold text-emerald-950 flex items-center gap-2">
+                          <span>{uploadModalFile.name}</span>
+                          <span className="text-[10px] text-emerald-600 font-normal">
+                            ({(uploadModalFile.size / 1024).toFixed(1)} KB)
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-emerald-700">{t.applicant.cvParsedSuccess}</p>
+                      </div>
+                    </div>
+                    <label className="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer">
+                      {t.common.activeLanguage === "العربية" ? "تغيير الملف" : "Change File"}
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        className="hidden"
+                        onChange={(e) => handleSelectCvFile(e.target.files)}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Fields: Title & Name */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.resumeTitleLabel}</label>
+                      <input
+                        type="text"
+                        required
+                        value={cvTitle}
+                        onChange={(e) => setCvTitle(e.target.value)}
+                        placeholder={t.applicant.resumeTitlePlaceholder}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.candidateNameLabel}</label>
+                      <input
+                        type="text"
+                        value={candidateName}
+                        onChange={(e) => setCandidateName(e.target.value)}
+                        placeholder={t.applicant.candidateNamePlaceholder}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fields: University & Major */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.universityLabel}</label>
+                      <input
+                        type="text"
+                        value={university}
+                        onChange={(e) => setUniversity(e.target.value)}
+                        placeholder="e.g., King Khalid University"
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.majorLabel}</label>
+                      <input
+                        type="text"
+                        value={major}
+                        onChange={(e) => setMajor(e.target.value)}
+                        placeholder="e.g., Computer Science / Software Engineering"
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fields: GPA, Student ID, Career Level */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.gpaLabel}</label>
+                      <input
+                        type="text"
+                        value={gpa}
+                        onChange={(e) => setGpa(e.target.value)}
+                        placeholder="e.g., 4.75 / 5.0"
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.studentIdLabel}</label>
+                      <input
+                        type="text"
+                        value={studentId}
+                        onChange={(e) => setStudentId(e.target.value)}
+                        placeholder={t.applicant.studentIdPlaceholder}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.careerLevelLabel}</label>
+                      <select
+                        value={careerLevel}
+                        onChange={(e) => setCareerLevel(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="Fresh Graduate">Fresh Graduate</option>
+                        <option value="Entry Level">Entry Level</option>
+                        <option value="Senior Student">Senior Student</option>
+                        <option value="Junior Level">Junior Level</option>
+                        <option value="Mid Level">Mid Level</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Professional Summary */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.summaryLabel}</label>
+                    <textarea
+                      rows={3}
+                      value={summary}
+                      onChange={(e) => setSummary(e.target.value)}
+                      placeholder={t.applicant.summaryPlaceholder}
+                      className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-y"
+                    />
+                  </div>
+
+                  {/* Skills Tag Input */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-slate-700">{t.applicant.skillsLabel}</label>
+                      <span className="text-[10px] text-slate-400">{skills.length} skills</span>
+                    </div>
+                    <SkillTagInput
+                      value={skills}
+                      onChange={setSkills}
+                      placeholder={t.applicant.skillsPlaceholder}
+                    />
+                    <p className="text-[11px] text-slate-400 mt-1">{t.applicant.skillsHelpText}</p>
+                  </div>
+
+                  {/* Collapsible Raw Text */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setIsRawTextOpen(!isRawTextOpen)}
+                      className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100 text-xs font-bold text-slate-700 flex items-center justify-between transition-colors cursor-pointer"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-slate-500" />
+                        {t.applicant.rawCvTextLabel}
+                      </span>
+                      {isRawTextOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </button>
+                    {isRawTextOpen && (
+                      <div className="p-3 bg-white space-y-2">
+                        <textarea
+                          rows={6}
+                          value={rawText}
+                          onChange={(e) => setRawText(e.target.value)}
+                          className="w-full font-mono text-[11px] p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-emerald-500 resize-y"
+                        />
+                        <p className="text-[10px] text-slate-400">{t.applicant.rawCvTextHelp}</p>
+                      </div>
+                    )}
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+              <button
+                type="button"
+                onClick={() => setIsUploadModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 cursor-pointer"
+              >
+                {t.common.cancel}
+              </button>
+              {uploadModalFile && (
+                <button
+                  type="submit"
+                  form="save-parsed-cv-form"
+                  disabled={isSavingCv}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+                >
+                  <CheckCircle2 className={`w-4 h-4 ${isSavingCv ? "animate-spin" : ""}`} />
+                  <span>{isSavingCv ? t.applicant.savingCvBtn : t.applicant.saveAndPublishCvBtn}</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
