@@ -1,0 +1,82 @@
+[
+  {
+    "id": "RES-01",
+    "name": "Candidate Alpha (AI & ML Focus)",
+    "education": "Bachelor of Science in Computer Science | King Khalid University (GPA: 4.85 / 5.0)",
+    "summary": "AI senior student specialized in machine learning, PyTorch, predictive modeling, and RESTful API deployment.",
+    "skills": ["Python", "Machine Learning", "PyTorch", "FastAPI", "PostgreSQL", "SQL", "Scikit-Learn", "Git / GitHub"],
+    "text": "Bachelor of Science in Computer Science, King Khalid University, GPA 4.85/5.0. Technical Skills: Python, Machine Learning, PyTorch, Scikit-Learn, FastAPI, PostgreSQL, SQL, Git / GitHub. Projects: Developed automated predictive machine learning pipeline using Python and PyTorch; built REST API microservice with FastAPI and PostgreSQL for model inference; executed SQL database schema design."
+  },
+  {
+    "id": "RES-02",
+    "name": "Candidate Beta (NLP Specialist)",
+    "education": "Bachelor of Science in Artificial Intelligence | King Saud University (GPA: 4.70 / 5.0)",
+    "summary": "Natural Language Processing researcher with experience in BERT, Transformers, PyTorch, and deep text analytics.",
+    "skills": ["Python", "Natural Language Processing (NLP)", "BERT / Transformers", "PyTorch", "Deep Learning", "Git / GitHub"],
+    "text": "Bachelor of Science in Artificial Intelligence, King Saud University, GPA 4.70/5.0. Technical Skills: Python, Natural Language Processing (NLP), BERT / Transformers, PyTorch, Deep Learning, Git / GitHub. Capstone Project: Fine-tuned Arabic BERT transformer models on social media reviews using PyTorch and Hugging Face; implemented tokenization and contextual embeddings."
+  },
+  {
+    "id": "RES-03",
+    "name": "Candidate Gamma (Front-End Specialist)",
+    "education": "Bachelor of Science in Software Engineering | King Khalid University (GPA: 4.90 / 5.0)",
+    "summary": "Front-End web developer proficient in React, Next.js, TypeScript, Tailwind CSS, and REST API integration.",
+    "skills": ["React", "Next.js", "TypeScript", "JavaScript", "HTML/CSS", "Tailwind CSS", "REST APIs", "Git / GitHub"],
+    "text": "Bachelor of Science in Software Engineering, King Khalid University, GPA 4.90/5.0. Technical Skills: React, Next.js, TypeScript, JavaScript, HTML/CSS, Tailwind CSS, REST APIs, Git / GitHub. Experience & Projects: Engineered responsive web portals using Next.js 14, React, and TypeScript; styled accessible user interfaces with Tailwind CSS; integrated client state with asynchronous REST APIs."
+  },
+  {
+    "id": "RES-04",
+    "name": "Candidate Delta (Full-Stack Developer)",
+    "education": "Bachelor of Science in Computer Science | King Khalid University (GPA: 4.65 / 5.0)",
+    "summary": "Full-stack software developer with React front-end, Node.js and PostgreSQL backend, and Docker containerization.",
+    "skills": ["React", "JavaScript", "HTML/CSS", "PostgreSQL", "SQL", "Docker", "REST APIs", "Git / GitHub"],
+    "text": "Bachelor of Science in Computer Science, King Khalid University, GPA 4.65/5.0. Technical Skills: React, JavaScript, HTML/CSS, PostgreSQL, SQL, Docker, REST APIs, Git / GitHub. Projects: Built full-stack e-commerce web platform featuring React frontend and PostgreSQL database; containerized application components using Docker; integrated REST APIs."
+  },
+  {
+    "id": "RES-05",
+    "name": "Candidate Epsilon (DevOps & Cloud Specialist)",
+    "education": "Bachelor of Science in Computer Science | KFUPM (GPA: 4.75 / 5.0)",
+    "summary": "Cloud DevOps engineer focused on Docker containerization, Kubernetes orchestration, AWS cloud, and CI/CD pipelines.",
+    "skills": ["Docker", "Kubernetes", "AWS", "CI/CD Pipelines", "Linux", "Bash", "Python", "Git / GitHub"],
+    "text": "Bachelor of Science in Computer Science, King Fahd University of Petroleum & Minerals (KFUPM), GPA 4.75/5.0. Technical Skills: Docker, Kubernetes, AWS, CI/CD Pipelines, Linux, Bash, Python, Git / GitHub. Projects: Deployed microservices on multi-node Kubernetes cluster on AWS; built automated CI/CD pipelines using GitHub Actions; authored Bash automation scripts on Linux servers."
+  },
+  {
+    "id": "RES-06",
+    "name": "Candidate Zeta (Linux Systems Administrator)",
+    "education": "Bachelor of Science in Information Technology | King Khalid University (GPA: 4.60 / 5.0)",
+    "summary": "Systems administrator experienced with Linux server hardening, Bash scripting, Docker containers, and network security.",
+    "skills": ["Linux", "Bash", "Docker", "Network Security", "Information Security", "Python", "Git / GitHub"],
+    "text": "Bachelor of Science in Information Technology, King Khalid University, GPA 4.60/5.0. Technical Skills: Linux, Bash, Docker, Network Security, Information Security, Python, Git / GitHub. Projects: Administered Ubuntu Linux server environments; hardened network firewall rules and user access controls; wrote automated Bash cron scripts for server backups and Docker container updates."
+  },
+  {
+    "id": "RES-07",
+    "name": "Candidate Eta (Cybersecurity SOC Analyst)",
+    "education": "Bachelor of Science in Computer Science (Cybersecurity Track) | King Khalid University (GPA: 4.88 / 5.0)",
+    "summary": "Cybersecurity specialist proficient in network traffic analysis, Wireshark, incident response, and NCA compliance.",
+    "skills": ["Information Security", "Network Security", "Wireshark", "Linux", "Ethical Hacking", "Incident Response", "Python", "Git / GitHub"],
+    "text": "Bachelor of Science in Computer Science (Cybersecurity Track), King Khalid University, GPA 4.88/5.0. Technical Skills: Information Security, Network Security, Wireshark, Linux, Ethical Hacking, Incident Response, Python, Git / GitHub. Projects: Conducted network intrusion detection using Wireshark packet analysis; executed penetration testing in Kali Linux labs; audited mock controls against Saudi NCA ECC."
+  },
+  {
+    "id": "RES-08",
+    "name": "Candidate Theta (Database & BI Analyst)",
+    "education": "Bachelor of Science in Information Systems | King Khalid University (GPA: 4.70 / 5.0)",
+    "summary": "Information Systems senior skilled in normalized SQL database design, PostgreSQL administration, and Power BI dashboards.",
+    "skills": ["SQL", "PostgreSQL", "Database Design", "Power BI", "Data Analysis", "Data Visualization", "Python", "Git / GitHub"],
+    "text": "Bachelor of Science in Information Systems, King Khalid University, GPA 4.70/5.0. Technical Skills: SQL, PostgreSQL, Database Design, Power BI, Data Analysis, Data Visualization, Python, Git / GitHub. Projects: Designed 3NF normalized relational PostgreSQL database schemas; optimized complex SQL joins; created interactive business intelligence KPI dashboards in Power BI."
+  },
+  {
+    "id": "RES-09",
+    "name": "Candidate Iota (Data Scientist)",
+    "education": "Bachelor of Science in Information Systems | King Khalid University (GPA: 4.72 / 5.0)",
+    "summary": "Data scientist experienced in statistical data modeling, Scikit-Learn, Pandas, NumPy, SQL, and Power BI reporting.",
+    "skills": ["Python", "Data Analysis", "Machine Learning", "Scikit-Learn", "Power BI", "SQL", "PostgreSQL", "Git / GitHub"],
+    "text": "Bachelor of Science in Information Systems, King Khalid University, GPA 4.72/5.0. Technical Skills: Python, Data Analysis, Machine Learning, Scikit-Learn, Power BI, SQL, PostgreSQL, Git / GitHub. Projects: Built predictive regression and classification models using Python, Pandas, and Scikit-Learn on 20,000+ transaction records; built Power BI executive dashboards."
+  },
+  {
+    "id": "RES-10",
+    "name": "Candidate Kappa (Civil Engineer - Negative Control)",
+    "education": "Bachelor of Science in Civil Engineering | King Khalid University (GPA: 3.85 / 5.0)",
+    "summary": "Civil engineer specialized in structural concrete analysis, AutoCAD drafting, site surveying, and soil mechanics.",
+    "skills": ["AutoCAD", "Structural Analysis", "Concrete Testing", "Site Surveying", "Project Scheduling"],
+    "text": "Bachelor of Science in Civil Engineering, King Khalid University, GPA 3.85/5.0. Technical Skills: AutoCAD, Structural Analysis, Concrete Testing, Site Surveying, Project Scheduling, Soil Mechanics, Construction Site Supervision. Projects: Performed structural load modeling in ETABS; produced architectural drafting drawings in AutoCAD; inspected commercial concrete curing."
+  }
+]

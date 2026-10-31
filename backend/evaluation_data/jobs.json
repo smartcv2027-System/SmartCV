@@ -1,0 +1,87 @@
+[
+  {
+    "id": "JOB-01",
+    "title": "Junior AI & Machine Learning Engineer",
+    "track": "AI & Machine Learning",
+    "location": "Riyadh, Saudi Arabia (Hybrid)",
+    "required_skills": [
+      "Python",
+      "Machine Learning",
+      "PyTorch",
+      "SQL",
+      "FastAPI",
+      "PostgreSQL",
+      "Natural Language Processing (NLP)",
+      "Git / GitHub"
+    ],
+    "description": "Seeking an entry-level Junior AI & Machine Learning Engineer to develop, evaluate, and deploy machine learning and NLP models. Core responsibilities include building predictive pipelines using Python, PyTorch, and Scikit-Learn; deploying microservices via FastAPI and PostgreSQL; querying relational data using SQL; and tracking experiments with Git."
+  },
+  {
+    "id": "JOB-02",
+    "title": "Junior Front-End Web Developer",
+    "track": "Software Engineering & Web",
+    "location": "Abha / Riyadh, Saudi Arabia (Remote Available)",
+    "required_skills": [
+      "React",
+      "Next.js",
+      "TypeScript",
+      "JavaScript",
+      "HTML/CSS",
+      "Tailwind CSS",
+      "REST APIs",
+      "Git / GitHub"
+    ],
+    "description": "Looking for a Junior Front-End Web Developer to engineer responsive, accessible web interfaces. Responsibilities include building component-driven user interfaces using React, Next.js, and TypeScript; integrating client state with RESTful APIs; styling applications with Tailwind CSS; and collaborating through Git / GitHub."
+  },
+  {
+    "id": "JOB-03",
+    "title": "Cloud & DevOps Infrastructure Engineer",
+    "track": "Cloud DevOps & Systems",
+    "location": "Riyadh, Saudi Arabia (On-site / Hybrid)",
+    "required_skills": [
+      "Docker",
+      "Kubernetes",
+      "AWS",
+      "CI/CD Pipelines",
+      "Linux",
+      "Bash",
+      "Python",
+      "Git / GitHub"
+    ],
+    "description": "Seeking a Cloud & DevOps Infrastructure Engineer to automate containerized deployments and manage cloud resources. Key duties include building Docker containers, orchestrating workloads with Kubernetes, configuring automated CI/CD pipelines via GitHub Actions, provisioning AWS infrastructure, and maintaining Linux server security with Bash scripts."
+  },
+  {
+    "id": "JOB-04",
+    "title": "Cybersecurity SOC Analyst & Defense Specialist",
+    "track": "Cybersecurity & Networks",
+    "location": "Abha / Hybrid, Saudi Arabia (NCA Partner)",
+    "required_skills": [
+      "Information Security",
+      "Network Security",
+      "Wireshark",
+      "Linux",
+      "Python",
+      "Ethical Hacking",
+      "Incident Response",
+      "Git / GitHub"
+    ],
+    "description": "Recruiting a detail-oriented Cybersecurity SOC Analyst to monitor security events and safeguard enterprise networks. Responsibilities include analyzing packet captures with Wireshark, hardening Linux systems, scripting automated log triage in Python, supporting incident response procedures, and verifying compliance with Saudi National Cybersecurity Authority (NCA) standards."
+  },
+  {
+    "id": "JOB-05",
+    "title": "Data Engineer & Business Intelligence Specialist",
+    "track": "Data Science & Analytics",
+    "location": "Jeddah / Remote, Saudi Arabia",
+    "required_skills": [
+      "SQL",
+      "PostgreSQL",
+      "Power BI",
+      "Python",
+      "Data Analysis",
+      "Database Design",
+      "Data Visualization",
+      "Git / GitHub"
+    ],
+    "description": "Hiring a Data Engineer & Business Intelligence Specialist to build analytical pipelines and executive reporting dashboards. Core duties include designing normalized transactional schemas in PostgreSQL, writing complex SQL queries, building automated ETL scripts with Python and Pandas, and developing interactive executive dashboards in Power BI."
+  }
+]

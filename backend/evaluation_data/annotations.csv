@@ -1,0 +1,51 @@
+pair_id,job_id,resume_id,evaluator_1,evaluator_2,consensus_label,notes
+P01,JOB-01,RES-01,3,3,3,Direct domain match: Python ML PyTorch FastAPI SQL
+P02,JOB-01,RES-02,2,3,3,Adjudicated: Strong NLP PyTorch Transformers capstone
+P03,JOB-01,RES-03,0,0,0,Non-relevant: Web frontend focus
+P04,JOB-01,RES-04,1,1,1,Low match: PostgreSQL SQL present but non-AI
+P05,JOB-01,RES-05,1,1,1,Low match: Python Docker present but non-AI
+P06,JOB-01,RES-06,0,1,1,Adjudicated: Python automation scripting present
+P07,JOB-01,RES-07,0,0,0,Non-relevant: Pure network security
+P08,JOB-01,RES-08,2,1,2,Adjudicated: SQL PostgreSQL Python relevant for data layer
+P09,JOB-01,RES-09,3,2,3,Adjudicated: Machine Learning Scikit-Learn Python SQL
+P10,JOB-01,RES-10,0,0,0,Non-relevant: Civil engineering negative control
+P11,JOB-02,RES-01,0,1,1,Adjudicated: REST API integration concepts present
+P12,JOB-02,RES-02,0,0,0,Non-relevant: AI NLP research
+P13,JOB-02,RES-03,3,3,3,Direct domain match: React Next.js TypeScript Tailwind
+P14,JOB-02,RES-04,3,3,3,Direct domain match: React JavaScript HTML REST APIs
+P15,JOB-02,RES-05,0,0,0,Non-relevant: Cloud and infrastructure
+P16,JOB-02,RES-06,0,0,0,Non-relevant: Linux systems administration
+P17,JOB-02,RES-07,0,0,0,Non-relevant: Network security and SOC
+P18,JOB-02,RES-08,0,0,0,Non-relevant: Database design and BI
+P19,JOB-02,RES-09,0,0,0,Non-relevant: Data science and modeling
+P20,JOB-02,RES-10,0,0,0,Non-relevant: Civil engineering negative control
+P21,JOB-03,RES-01,1,1,1,Low match: Python and FastAPI deployment
+P22,JOB-03,RES-02,0,0,0,Non-relevant: Pure NLP research
+P23,JOB-03,RES-03,0,0,0,Non-relevant: Frontend web development
+P24,JOB-03,RES-04,1,2,1,Adjudicated: Docker present but lacks cloud orchestration
+P25,JOB-03,RES-05,3,3,3,Direct domain match: Docker K8s AWS CI/CD Linux Bash
+P26,JOB-03,RES-06,2,2,2,Medium match: Linux Bash Docker server hardening
+P27,JOB-03,RES-07,1,1,1,Low match: Linux and Python scripting
+P28,JOB-03,RES-08,0,0,0,Non-relevant: Database design and BI
+P29,JOB-03,RES-09,0,0,0,Non-relevant: Data science and modeling
+P30,JOB-03,RES-10,0,0,0,Non-relevant: Civil engineering negative control
+P31,JOB-04,RES-01,0,0,0,Non-relevant: AI and machine learning
+P32,JOB-04,RES-02,0,0,0,Non-relevant: NLP and transformers
+P33,JOB-04,RES-03,0,0,0,Non-relevant: Frontend web
+P34,JOB-04,RES-04,0,0,0,Non-relevant: Full stack web
+P35,JOB-04,RES-05,1,1,1,Low match: Linux and infrastructure automation
+P36,JOB-04,RES-06,2,2,2,Medium match: Network security Linux server hardening
+P37,JOB-04,RES-07,3,3,3,Direct domain match: Wireshark NetSec Ethical Hacking NCA
+P38,JOB-04,RES-08,0,0,0,Non-relevant: Database and BI
+P39,JOB-04,RES-09,0,0,0,Non-relevant: Data science
+P40,JOB-04,RES-10,0,0,0,Non-relevant: Civil engineering negative control
+P41,JOB-05,RES-01,2,2,2,Medium match: SQL PostgreSQL Python data analysis
+P42,JOB-05,RES-02,0,1,0,Adjudicated: Python present but lacks SQL and BI tools
+P43,JOB-05,RES-03,0,0,0,Non-relevant: Frontend web
+P44,JOB-05,RES-04,1,1,1,Low match: PostgreSQL and SQL development
+P45,JOB-05,RES-05,0,0,0,Non-relevant: Cloud and DevOps
+P46,JOB-05,RES-06,0,0,0,Non-relevant: Systems administration
+P47,JOB-05,RES-07,0,0,0,Non-relevant: Cybersecurity
+P48,JOB-05,RES-08,3,3,3,Direct domain match: SQL PostgreSQL Power BI DB Design
+P49,JOB-05,RES-09,3,3,3,Direct domain match: Python Data Analysis Scikit-Learn Power BI SQL
+P50,JOB-05,RES-10,0,0,0,Non-relevant: Civil engineering negative control

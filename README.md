@@ -128,13 +128,13 @@ The database comes pre-populated with realistic, graduation-project-grade demons
   - 13 Computer Science, Information Systems, AI, Cybersecurity, and Software Engineering graduates across King Khalid University (KKU), King Saud University (KSU), and KFUPM.
   - 2 Negative Control Profiles (Civil Engineering & Accounting/Auditing) demonstrating model discrimination against out-of-domain applicants.
 - **6 Enterprise Tech Job Postings**:
-  1. *Junior AI & Machine Learning Engineer* (Riyadh, Hybrid)
-  2. *Junior Front-End Web Developer* (Next.js & React, Abha / Remote)
-  3. *Cloud & DevOps Infrastructure Engineer* (AWS, Docker, K8s, Riyadh)
-  4. *Cybersecurity SOC Analyst & Defense Specialist* (SIEM, Abha / Hybrid)
-  5. *Data Engineer & Business Intelligence Specialist* (SQL, Power BI, Jeddah)
-  6. *Full-Stack Software Engineer* (FastAPI, React, PostgreSQL, Riyadh)
-- **Candidate Job Applications & Pre-Calculated AI Matches**: Realistic multi-track applicant submissions across postings with pre-computed Sentence-BERT, TF-IDF, verbatim evidence quotes, and XAI summaries linked strictly to submitted job applications.
+  1. *Junior AI & Machine Learning Engineer* (Python, PyTorch, NLP — Riyadh, Hybrid)
+  2. *Junior Front-End Web Developer* (Next.js 14, React, TypeScript — Riyadh, Remote Available)
+  3. *Cloud & DevOps Infrastructure Engineer* (Docker, Kubernetes, AWS — Abha, On-site / Hybrid)
+  4. *Cybersecurity SOC Analyst & Defense Specialist* (Wireshark, Linux, NCA Controls — Riyadh, NCA Partner)
+  5. *Data Engineer & Business Intelligence Specialist* (SQL, PostgreSQL, Power BI — Riyadh, Financial Sector)
+  6. *Full-Stack Software Engineer* (Java, React, PostgreSQL, Docker — Al-Khobar, Hybrid)
+- **Candidate Job Applications & On-Demand AI Screening**: Realistic multi-track applicant submissions pre-seeded across postings, ready for instantaneous Sentence-BERT semantic scoring, TF-IDF lexical matching, verbatim evidence quotes, and XAI summaries linked strictly to submitted job applications.
 - **Physical Resume Files**: Stored in `backend/uploads/` so downloading or viewing resumes in the browser always succeeds without 404s.
 
 ---
@@ -175,12 +175,12 @@ python backend/migrate_to_mysql.py
 ## Testing & Academic Evaluation
 
 ### Automated Backend Regression Suite
-Run the 59 backend unit, integration, and AI evaluation tests:
+Run the 70 backend unit, integration, and AI evaluation tests:
 ```bash
 cd backend
 .\.venv\Scripts\pytest -v
 ```
-All **59/59 tests pass (100%)** covering:
+All **70/70 tests pass (100%)** covering:
 - Authentication & JWT token validation
 - Role-based authorization & permission enforcement (RBAC)
 - Upload validation (whitelists, file replacement, duplicate detection, empty file rejection)
@@ -188,6 +188,7 @@ All **59/59 tests pass (100%)** covering:
 - Resume parsing, profile field extraction, and applicant-exclusive CV upload workflow
 - Job application lifecycle & applicant-exclusive matching (apply, duplicate prevention, withdrawal, 0-applicant rejection)
 - AI matching, Sentence-BERT strict mode, XAI explainability, and LaTeX generator
+- Independent human ground-truth ranking validation (Spearman's $\rho$, nDCG@5, Precision@5, and quadratic weighted Cohen's Kappa)
 
 ### Frontend Internationalization Parity Check
 Verify 100% key parity across Arabic and English dictionaries:
@@ -209,7 +210,7 @@ SmartCV is production-ready for zero-cost cloud hosting ($0.00 / month forever) 
 | **Frontend Web App** | **Vercel** | 100 GB Bandwidth, Global Edge CDN | Next.js 16.3.5 App Router |
 | **AI & Backend Service** | **Render.com** | 750 Instance Hours/Mo, 512 MB RAM | FastAPI + Sentence-BERT Engine |
 | **Cloud Relational DB** | **Supabase** | 500 MB PostgreSQL, Session Pooler | 16 Relational Tables & Audit Logs |
-| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 59 tests & deploys on `git push` |
+| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 70 tests & deploys on `git push` |
 
 * **1-Click Backend Deployment**: Connect your GitHub repository to [Render.com](https://render.com) using the included [`render.yaml`](file:///d:/workspace/2026_2027/FirstSemester/KKU/SmartCV/SmartCV/render.yaml) Blueprint.
 * **1-Click Frontend Deployment**: Import the `frontend` folder into [Vercel](https://vercel.com) and set `NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api/v1`.
