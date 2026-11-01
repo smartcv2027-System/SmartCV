@@ -312,6 +312,94 @@ export interface ModelEvaluationReport {
   generated_at: string;
 }
 
+export interface InterRaterReliability {
+  quadratic_weighted_kappa: number;
+  linear_weighted_kappa: number;
+  exact_agreement_rate: number;
+  exact_matches_count: number;
+  total_pairs: number;
+  agreement_level: string;
+  contingency_table: number[][];
+}
+
+export interface GroundTruthSummaryMetric {
+  model_name: string;
+  spearman_rho_mean: number | null;
+  spearman_rho_std: number;
+  ndcg_at_5_mean: number;
+  ndcg_at_5_std: number;
+  precision_at_5_mean: number;
+  precision_at_5_std: number;
+}
+
+export interface ModelJobMetric {
+  scores: number[];
+  spearman_rho: number | null;
+  ndcg_at_5: number;
+  precision_at_5: number;
+}
+
+export interface GroundTruthPerJobEvaluation {
+  job_id: string;
+  job_title: string;
+  candidate_count: number;
+  consensus_labels: number[];
+  models: {
+    [modelName: string]: ModelJobMetric;
+  };
+}
+
+export interface GroundTruthEvaluationReport {
+  benchmark_pairs_total: number;
+  jobs_evaluated_count: number;
+  inter_rater_reliability: InterRaterReliability;
+  per_job_evaluations: GroundTruthPerJobEvaluation[];
+  summary_metrics: GroundTruthSummaryMetric[];
+  latex_table: string;
+}
+
+export interface AblationConfigMetric {
+  config_id: string;
+  config_name: string;
+  description: string;
+  weights: {
+    sbert: number;
+    tfidf: number;
+    skills: number;
+  };
+  spearman_rho_mean: number | null;
+  spearman_rho_std: number;
+  ndcg_at_5_mean: number;
+  ndcg_at_5_std: number;
+  precision_at_5_mean: number;
+  precision_at_5_std: number;
+}
+
+export interface EdgeCaseDeepDive {
+  case_id: string;
+  failure_mode: string;
+  job_id: string;
+  job_title: string;
+  resume_id: string;
+  candidate_title: string;
+  human_consensus_label: number;
+  human_label_meaning: string;
+  pure_sbert_score: number;
+  pure_tfidf_score: number;
+  pure_skills_score: number;
+  hybrid_score: number;
+  resume_snippet: string;
+  analysis: string;
+}
+
+export interface AblationReport {
+  benchmark_pairs_total: number;
+  jobs_evaluated_count: number;
+  ablation_configurations: AblationConfigMetric[];
+  edge_case_deep_dives: EdgeCaseDeepDive[];
+  latex_table: string;
+}
+
 function getAuthHeaders(): HeadersInit {
   const token = typeof window !== "undefined" ? localStorage.getItem("smartcv_token") : null;
   return {
@@ -862,5 +950,40 @@ export const api = {
     a.click();
     a.remove();
     window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  async getGroundTruthReport(): Promise<GroundTruthEvaluationReport> {
+    const res = await fetch(`${API_BASE}/evaluation/ground-truth`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch ground-truth evaluation report");
+    return res.json();
+  },
+
+  async downloadGroundTruthCsv(): Promise<void> {
+    const token = typeof window !== "undefined" ? localStorage.getItem("smartcv_token") : null;
+    const res = await fetch(`${API_BASE}/evaluation/ground-truth/csv`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      }
+    });
+    if (!res.ok) throw new Error("Failed to download ground-truth CSV dataset");
+    const blob = await res.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = "smartcv_ground_truth_50_pairs.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(downloadUrl);
+  },
+
+  async getAblationReport(): Promise<AblationReport> {
+    const res = await fetch(`${API_BASE}/evaluation/ablation`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch ablation evaluation report");
+    return res.json();
   }
 };

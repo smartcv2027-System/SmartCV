@@ -372,6 +372,31 @@ def test_evaluation_endpoints():
     assert "kku_smartcv_benchmark_36.csv" in csv_resp.headers["content-disposition"]
     assert "sample_id,track,ground_truth_label" in csv_resp.text
 
+    # 5. Test /evaluation/ground-truth
+    gt_resp = client.get("/api/v1/evaluation/ground-truth", headers=headers)
+    assert gt_resp.status_code == 200
+    gt_data = gt_resp.json()
+    assert gt_data["benchmark_pairs_total"] == 50
+    assert gt_data["jobs_evaluated_count"] == 5
+    assert "inter_rater_reliability" in gt_data
+    assert gt_data["inter_rater_reliability"]["quadratic_weighted_kappa"] > 0.80
+    assert len(gt_data["summary_metrics"]) == 3
+
+    # 6. Test /evaluation/ground-truth/csv download
+    gt_csv_resp = client.get("/api/v1/evaluation/ground-truth/csv", headers=headers)
+    assert gt_csv_resp.status_code == 200
+    assert gt_csv_resp.headers["content-type"].startswith("text/csv")
+    assert "smartcv_ground_truth_50_pairs.csv" in gt_csv_resp.headers["content-disposition"]
+    assert "job_id,resume_id,evaluator_1,evaluator_2,consensus_label" in gt_csv_resp.text
+
+    # 7. Test /evaluation/ablation
+    ab_resp = client.get("/api/v1/evaluation/ablation", headers=headers)
+    assert ab_resp.status_code == 200
+    ab_data = ab_resp.json()
+    assert len(ab_data["ablation_configurations"]) == 7
+    assert len(ab_data["edge_case_deep_dives"]) == 4
+    assert r"\begin{table}" in ab_data["latex_table"]
+
 
 
 

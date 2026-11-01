@@ -1,0 +1,33 @@
+{
+  "benchmark_name": "SmartCV 50-Pair Independent Human Evaluation Benchmark",
+  "benchmark_pairs": 50,
+  "jobs_count": 5,
+  "resumes_count": 10,
+  "evaluators_count": 2,
+  "evaluation_protocol": "Independent Blinded Human Annotation",
+  "relevance_scale": [0, 1, 2, 3],
+  "relevance_labels": {
+    "0": "Not Relevant",
+    "1": "Low Match",
+    "2": "Medium Match",
+    "3": "High Match"
+  },
+  "ranking_metrics": [
+    "spearman",
+    "ndcg_at_5",
+    "precision_at_5"
+  ],
+  "precision_relevance_threshold": 2,
+  "ndcg_k": 5,
+  "precision_k": 5,
+  "inter_rater_metric": "quadratic_weighted_cohen_kappa",
+  "model_training": false,
+  "model_fine_tuning": false,
+  "hybrid_weights": {
+    "sbert": 0.50,
+    "tfidf": 0.20,
+    "skills": 0.30
+  },
+  "sample_std_ddof": 1,
+  "notes": "Pretrained model parameters remain unchanged. TF-IDF vectorization is performed according to a predefined, unsupervised feature-extraction procedure. No supervised model training or fine-tuning is performed using this benchmark."
+}
