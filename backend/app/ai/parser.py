@@ -116,8 +116,16 @@ _GRAD_DATE_RE = re.compile(
     r"\b(?:graduation|expected\s+graduation|تاريخ\s+التخرج)\s*[:\-]?\s*(?:[A-Za-z]+\s+)?(\d{4})\b",
     re.IGNORECASE
 )
-_STUDENT_ID_RE = re.compile(
-    r"\b(?:Student|University)[ \t]*(?:ID|No\.?|Number)[ \t]*[:#\-]?[ \t]*([A-Za-z0-9-]{4,20})",
+_NATIONAL_ID_RE = re.compile(
+    r"(?:\b(?:National[ \t]*ID|ID[ \t]*(?:No\.?|Number)|Iqama[ \t]*(?:No\.?|Number)?)|رقم[ \t]*الهوية(?:[ \t]*الوطنية)?|الهوية[ \t]*الوطنية)[ \t]*[:#\-]?[ \t]*([12]\d{9}|\d{10})",
+    re.IGNORECASE,
+)
+_EXPERIENCE_YEARS_RE = re.compile(
+    r"(?:(\d{1,2})\s*\+?\s*(?:years?|yrs?)\s+(?:of\s+)?experience|خبرة\s*(\d{1,2})\s*(?:سنة|سنوات))",
+    re.IGNORECASE,
+)
+_GENDER_RE = re.compile(
+    r"(?:\bGender\b|الجنس)\s*[:#\-]?\s*(male|female|ذكر|أنثى|انثى)",
     re.IGNORECASE,
 )
 _SUMMARY_HEADING_RE = re.compile(
@@ -144,7 +152,7 @@ def _extract_summary(text: str) -> Optional[str]:
 def extract_profile_fields(text: str) -> Dict[str, Optional[str]]:
     """
     Extracts candidate profile fields (university, major, gpa, career_level,
-    student_id, profile_summary) from resume text using regex heuristics.
+    national_id, experience_years, profile_summary) from resume text using regex heuristics.
     Any field that cannot be found is None.
     """
     text = text or ""
@@ -180,13 +188,36 @@ def extract_profile_fields(text: str) -> Dict[str, Optional[str]]:
     if not career_level and re.search(r"\b(?:graduate|alumn(?:us|a|i)|خريج)\b", text, re.IGNORECASE):
         career_level = "Fresh Graduate"
 
-    student_id_match = _STUDENT_ID_RE.search(text)
+    national_id_match = _NATIONAL_ID_RE.search(text)
+
+    gender = None
+    gender_match = _GENDER_RE.search(text)
+    if gender_match:
+        g_val = gender_match.group(1).strip().lower()
+        gender = "female" if g_val in ("female", "أنثى", "انثى") else "male"
+
+    experience_years = None
+    exp_match = _EXPERIENCE_YEARS_RE.search(text)
+    if exp_match:
+        raw_years = exp_match.group(1) or exp_match.group(2)
+        if raw_years:
+            yrs = int(raw_years)
+            if yrs <= 0:
+                experience_years = "No Experience / Fresh Graduate"
+            elif yrs <= 2:
+                experience_years = "1-2 Years"
+            elif yrs <= 5:
+                experience_years = "3-5 Years"
+            else:
+                experience_years = "5+ Years"
 
     return {
         "university": university[:255] if university else None,
         "major": major,
         "gpa": gpa,
         "career_level": career_level,
-        "student_id": student_id_match.group(1) if student_id_match else None,
+        "national_id": national_id_match.group(1) if national_id_match else None,
+        "gender": gender,
+        "experience_years": experience_years,
         "profile_summary": _extract_summary(text),
     }

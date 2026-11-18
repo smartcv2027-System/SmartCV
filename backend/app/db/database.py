@@ -57,12 +57,33 @@ def ensure_schema():
     try:
         from sqlalchemy import inspect, text
         inspector = inspect(engine)
-        if "match_results" in inspector.get_table_names():
+        table_names = inspector.get_table_names()
+        if "match_results" in table_names:
             columns = [c["name"] for c in inspector.get_columns("match_results")]
             if "application_id" not in columns:
                 with engine.begin() as conn:
                     conn.execute(text("ALTER TABLE match_results ADD COLUMN application_id INT NULL"))
                     print("[INFO] Added application_id column to match_results table.")
+
+        if "candidate_profiles" in table_names:
+            cp_columns = [c["name"] for c in inspector.get_columns("candidate_profiles")]
+            new_cp_cols = [
+                ("national_id", "VARCHAR(100) NULL"),
+                ("gender", "VARCHAR(20) NULL"),
+                ("experience_years", "VARCHAR(50) NULL"),
+            ]
+            with engine.begin() as conn:
+                for col_name, col_type in new_cp_cols:
+                    if col_name not in cp_columns:
+                        conn.execute(text(f"ALTER TABLE candidate_profiles ADD COLUMN {col_name} {col_type}"))
+                        print(f"[INFO] Added {col_name} column to candidate_profiles table.")
+                if "student_id" in cp_columns:
+                    conn.execute(text("UPDATE candidate_profiles SET national_id = student_id WHERE national_id IS NULL AND student_id IS NOT NULL"))
+                    conn.execute(text("ALTER TABLE candidate_profiles DROP COLUMN student_id"))
+                    print("[INFO] Dropped legacy student_id column from candidate_profiles table.")
+                if "experience_details" in cp_columns:
+                    conn.execute(text("ALTER TABLE candidate_profiles DROP COLUMN experience_details"))
+                    print("[INFO] Dropped redundant experience_details column from candidate_profiles table.")
     except Exception as e:
         print(f"[WARNING] ensure_schema migration check error: {e}")
 

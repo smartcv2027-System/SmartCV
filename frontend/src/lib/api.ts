@@ -3,11 +3,13 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v
 export interface CandidateProfile {
   candidate_id: number;
   user_id: number;
-  student_id?: string;
+  national_id?: string;
+  gender?: string;
   major?: string;
   university?: string;
   gpa?: string;
   career_level?: string;
+  experience_years?: string;
   profile_summary?: string;
   created_at: string;
 }
@@ -121,11 +123,13 @@ export interface Resume {
 export interface ResumeFileParseResponse {
   suggested_title: string;
   candidate_name?: string;
-  student_id?: string;
+  national_id?: string;
+  gender?: string;
   university?: string;
   major?: string;
   gpa?: string;
   career_level?: string;
+  experience_years?: string;
   profile_summary?: string;
   detected_skills: string[];
   extracted_text: string;
@@ -144,11 +148,13 @@ export interface ResumeSaveParsed {
   checksum?: string;
   skills: string[];
   candidate_name?: string;
-  student_id?: string;
+  national_id?: string;
+  gender?: string;
   university?: string;
   major?: string;
   gpa?: string;
   career_level?: string;
+  experience_years?: string;
   profile_summary?: string;
 }
 
@@ -157,12 +163,39 @@ export interface ResumeUpdate {
   raw_text?: string;
   skills?: string[];
   candidate_name?: string;
-  student_id?: string;
+  national_id?: string;
+  gender?: string;
   university?: string;
   major?: string;
   gpa?: string;
   career_level?: string;
+  experience_years?: string;
   profile_summary?: string;
+}
+
+export interface JobRecommendationItem {
+  job_id: number;
+  job_title: string;
+  location?: string;
+  employment_type?: string;
+  required_experience?: string;
+  compatibility_score: number;
+  tfidf_score: number;
+  bert_score: number;
+  skill_match_score: number;
+  recommendation_status: string;
+  matched_skills: string[];
+  missing_skills: string[];
+  has_applied: boolean;
+  is_just_applied: boolean;
+}
+
+export interface ApplicantJobRecommendationsResponse {
+  resume_id: number;
+  resume_title: string;
+  applied_job_id?: number;
+  best_job?: JobRecommendationItem;
+  other_jobs: JobRecommendationItem[];
 }
 
 export interface MatchedSkillItem {
@@ -984,6 +1017,31 @@ export const api = {
       headers: getAuthHeaders()
     });
     if (!res.ok) throw new Error("Failed to fetch ablation evaluation report");
+    return res.json();
+  },
+
+  async getMyJobRecommendations(appliedJobId?: number): Promise<ApplicantJobRecommendationsResponse> {
+    const qs = appliedJobId ? `?applied_job_id=${appliedJobId}` : "";
+    const res = await fetch(`${API_BASE}/matching/candidate/recommendations${qs}`, {
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to fetch job recommendations");
+    }
+    return res.json();
+  },
+
+  async updateMyProfile(payload: Partial<CandidateProfile>): Promise<CandidateProfile> {
+    const res = await fetch(`${API_BASE}/resumes/profile/me`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Failed to update profile");
+    }
     return res.json();
   }
 };

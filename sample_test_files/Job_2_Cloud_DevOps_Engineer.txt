@@ -1,0 +1,21 @@
+Cloud & DevOps Infrastructure Engineer
+Location: Riyadh / Abha, Saudi Arabia (Hybrid) | Employment Type: Full-Time
+
+ROLE OVERVIEW & SUMMARY:
+We are hiring a Cloud & DevOps Infrastructure Engineer to automate cloud deployments, containerize enterprise microservices with Docker, orchestrate Kubernetes clusters across AWS and Microsoft Azure, and maintain secure Linux infrastructure.
+
+KEY RESPONSIBILITIES:
+- Containerize microservice applications using Docker and orchestrate high-availability workloads with Kubernetes.
+- Design, build, and maintain automated CI/CD Pipelines using GitHub Actions and Git / GitHub version control.
+- Provision, monitor, and scale Cloud Computing infrastructure across AWS and Microsoft Azure environments.
+- Administer and harden enterprise Linux servers, write automation scripts in Python, and manage PostgreSQL and SQL databases.
+- Enforce Cybersecurity Basics, access control policies, and continuous monitoring across production clusters.
+- Collaborate with Agile / Scrum development teams utilizing strong Problem Solving, Adaptability, and Communication capabilities.
+
+REQUIREMENTS & QUALIFICATIONS:
+- Bachelor's degree in Computer Science, Information Systems, or Software Engineering.
+- Proven experience with Docker, Kubernetes, CI/CD Pipelines, and Linux administration.
+- Hands-on familiarity with Cloud Computing platforms including AWS and Microsoft Azure.
+- Working knowledge of Python scripting, SQL, PostgreSQL, REST APIs, and Git / GitHub.
+- Solid understanding of Cybersecurity Basics, Problem Solving, Team Collaboration, and Communication.
+

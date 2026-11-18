@@ -44,9 +44,10 @@ def test_jobs_api():
     assert len(jobs[0]["skills"]) > 0
 
 def test_matching_and_ranking():
-    # Fetch job list
+    # Fetch job list and select a job that has candidate applications
     jobs_resp = client.get("/api/v1/jobs/")
-    job_id = jobs_resp.json()[0]["job_id"]
+    jobs_list = jobs_resp.json()
+    job_id = next((j["job_id"] for j in jobs_list if (j.get("applications_count") or 0) > 0), jobs_list[0]["job_id"])
     
     # Authenticate as Sarah (Recruiter)
     token = create_access_token(subject=1, role="recruiter")
@@ -95,9 +96,10 @@ def test_evaluation_report():
     assert latex_data["total_samples"] == 36
 
 def test_matching_with_custom_weights():
-    # Fetch job list
+    # Fetch job list and select a job that has candidate applications
     jobs_resp = client.get("/api/v1/jobs/")
-    job_id = jobs_resp.json()[0]["job_id"]
+    jobs_list = jobs_resp.json()
+    job_id = next((j["job_id"] for j in jobs_list if (j.get("applications_count") or 0) > 0), jobs_list[0]["job_id"])
     
     token = create_access_token(subject=1, role="recruiter")
     headers = {"Authorization": f"Bearer {token}"}

@@ -53,11 +53,13 @@ class CandidateProfile(Base):
 
     candidate_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
-    student_id = Column(String(100), nullable=True)
+    national_id = Column(String(100), nullable=True)
+    gender = Column(String(20), nullable=True)  # 'male' or 'female'
     major = Column(String(255), nullable=True)
     university = Column(String(255), nullable=True)
     gpa = Column(String(20), nullable=True)
     career_level = Column(String(50), nullable=True)
+    experience_years = Column(String(50), nullable=True)
     profile_summary = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

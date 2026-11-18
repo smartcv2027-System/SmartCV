@@ -153,7 +153,9 @@ def seed_database(force_reseed: bool = False):
             "full_name": "Reema Yahya Alfaifi",
             "email": "reema.applicant@kku.edu.sa",
             "phone": "+966 55 987 6543",
-            "student_id": "444809769",
+            "national_id": "1109769444",
+            "gender": "female",
+            "experience_years": "1-2 Years",
             "major": "Information Systems",
             "university": "King Khalid University",
             "gpa": "4.78 / 5.0",
@@ -163,6 +165,10 @@ def seed_database(force_reseed: bool = False):
             "resume_text": """REEMA YAHYA ALFAIFI
 Abha, Saudi Arabia | reema.applicant@kku.edu.sa | +966 55 987 6543
 LinkedIn: linkedin.com/in/reema-kku | GitHub: github.com/reema-kku
+National ID: 1109769444 | Gender: Female | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Information Systems senior specializing in AI, Machine Learning, and Sentence-BERT with hands-on capstone project experience on explainable recruitment screening.
 
 EDUCATION
 Bachelor of Science in Information Systems | King Khalid University, Abha, KSA
@@ -188,7 +194,9 @@ ACADEMIC PROJECTS
             "full_name": "Nouf Al-Otaibi",
             "email": "nouf.otaibi@kku.edu.sa",
             "phone": "+966 56 111 2233",
-            "student_id": "444809895",
+            "national_id": "1109895444",
+            "gender": "female",
+            "experience_years": "1-2 Years",
             "major": "Computer Science",
             "university": "King Khalid University",
             "gpa": "4.90 / 5.0",
@@ -198,6 +206,10 @@ ACADEMIC PROJECTS
             "resume_text": """NOUF AL-OTAIBI
 Abha, Saudi Arabia | nouf.otaibi@kku.edu.sa | +966 56 111 2233
 GitHub: github.com/nouf-dev | Portfolio: nouf-web.dev
+National ID: 1109895444 | Gender: Female | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Full-Stack Web Developer specialized in Next.js 14, React, TypeScript, and accessible responsive user interfaces.
 
 EDUCATION
 Bachelor of Science in Computer Science | King Khalid University
@@ -219,7 +231,9 @@ PROJECTS
             "full_name": "Omar Al-Shehri",
             "email": "omar.shehri@kku.edu.sa",
             "phone": "+966 57 444 5566",
-            "student_id": "444808554",
+            "national_id": "1108554444",
+            "gender": "male",
+            "experience_years": "No Experience / Fresh Graduate",
             "major": "Information Systems",
             "university": "King Khalid University",
             "gpa": "4.65 / 5.0",
@@ -228,6 +242,10 @@ PROJECTS
             "filename": "Omar_AlShehri_Database_CV.txt",
             "resume_text": """OMAR AL-SHEHRI
 Abha, Saudi Arabia | omar.shehri@kku.edu.sa | +966 57 444 5566
+National ID: 1108554444 | Gender: Male | Experience: Fresh Graduate (0 years of experience)
+
+PROFESSIONAL SUMMARY
+Data & Business Intelligence Analyst with deep expertise in SQL, PostgreSQL, Power BI dashboards, and data normalization.
 
 EDUCATION
 Bachelor of Science in Information Systems | King Khalid University
@@ -250,7 +268,9 @@ PROJECTS
             "full_name": "Reem Al-Ghamdi",
             "email": "reem.ghamdi@kku.edu.sa",
             "phone": "+966 53 222 3344",
-            "student_id": "444801122",
+            "national_id": "1101122444",
+            "gender": "female",
+            "experience_years": "1-2 Years",
             "major": "Computer Science (Cybersecurity Track)",
             "university": "King Khalid University",
             "gpa": "4.85 / 5.0",
@@ -260,6 +280,10 @@ PROJECTS
             "resume_text": """REEM AL-GHAMDI
 Abha / Riyadh, Saudi Arabia | reem.ghamdi@kku.edu.sa | +966 53 222 3344
 LinkedIn: linkedin.com/in/reem-security
+National ID: 1101122444 | Gender: Female | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Cybersecurity and SOC defense specialist with hands-on experience in network traffic analysis, Wireshark, Linux hardening, and Saudi NCA compliance.
 
 EDUCATION
 Bachelor of Science in Computer Science (Cybersecurity Specialization) | King Khalid University
@@ -281,7 +305,9 @@ PROJECTS & CERTIFICATIONS
             "full_name": "Saad Al-Dossary",
             "email": "saad.dossary@kfupm.edu.sa",
             "phone": "+966 50 888 9900",
-            "student_id": "202108740",
+            "national_id": "1087402021",
+            "gender": "male",
+            "experience_years": "1-2 Years",
             "major": "Computer Science",
             "university": "King Fahd University of Petroleum & Minerals (KFUPM)",
             "gpa": "4.75 / 5.0",
@@ -291,6 +317,10 @@ PROJECTS & CERTIFICATIONS
             "resume_text": """SAAD AL-DOSSARY
 Dhahran / Riyadh, Saudi Arabia | saad.dossary@kfupm.edu.sa | +966 50 888 9900
 GitHub: github.com/saad-cloud | LinkedIn: linkedin.com/in/saad-dossary
+National ID: 1087402021 | Gender: Male | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Cloud DevOps Engineer passionate about containerization, Kubernetes cluster orchestration, and automated CI/CD pipelines on AWS.
 
 EDUCATION
 Bachelor of Science in Computer Science | KFUPM, Dhahran
@@ -313,7 +343,9 @@ PROJECTS
             "full_name": "Halah Al-Zahrani",
             "email": "halah.zahrani@kku.edu.sa",
             "phone": "+966 55 333 4455",
-            "student_id": "444807766",
+            "national_id": "1107766444",
+            "gender": "female",
+            "experience_years": "No Experience / Fresh Graduate",
             "major": "Computer Science",
             "university": "King Khalid University",
             "gpa": "4.88 / 5.0",
@@ -322,6 +354,10 @@ PROJECTS
             "filename": "Halah_AlZahrani_ComputerVision_CV.txt",
             "resume_text": """HALAH AL-ZAHRANI
 Abha, Saudi Arabia | halah.zahrani@kku.edu.sa | +966 55 333 4455
+National ID: 1107766444 | Gender: Female | Experience: Fresh Graduate (0 years of experience)
+
+PROFESSIONAL SUMMARY
+Computer Vision and Deep Learning researcher with extensive experience in OpenCV, PyTorch, YOLO object detection, and CNNs.
 
 EDUCATION
 Bachelor of Science in Computer Science | King Khalid University
@@ -344,7 +380,9 @@ PROJECTS
             "full_name": "Rakan Al-Harbi",
             "email": "rakan.harbi@ksu.edu.sa",
             "phone": "+966 54 777 8899",
-            "student_id": "442103980",
+            "national_id": "1103980442",
+            "gender": "male",
+            "experience_years": "1-2 Years",
             "major": "Software Engineering",
             "university": "King Saud University",
             "gpa": "4.62 / 5.0",
@@ -354,6 +392,10 @@ PROJECTS
             "resume_text": """RAKAN AL-HARBI
 Riyadh, Saudi Arabia | rakan.harbi@ksu.edu.sa | +966 54 777 8899
 GitHub: github.com/rakan-dev
+National ID: 1103980442 | Gender: Male | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Software Engineer specialized in enterprise Java backend, Spring Boot microservices, PostgreSQL, and scalable REST APIs.
 
 EDUCATION
 Bachelor of Science in Software Engineering | King Saud University, Riyadh
@@ -376,7 +418,9 @@ PROJECTS
             "full_name": "Bayan Al-Shahrani",
             "email": "bayan.shahrani@kku.edu.sa",
             "phone": "+966 59 123 7890",
-            "student_id": "444806543",
+            "national_id": "1106543444",
+            "gender": "female",
+            "experience_years": "No Experience / Fresh Graduate",
             "major": "Information Systems",
             "university": "King Khalid University",
             "gpa": "4.72 / 5.0",
@@ -385,6 +429,10 @@ PROJECTS
             "filename": "Bayan_AlShahrani_DataScience_CV.txt",
             "resume_text": """BAYAN AL-SHAHRANI
 Abha, Saudi Arabia | bayan.shahrani@kku.edu.sa | +966 59 123 7890
+National ID: 1106543444 | Gender: Female | Experience: Fresh Graduate (0 years of experience)
+
+PROFESSIONAL SUMMARY
+Data Scientist skilled in statistical modeling, Scikit-Learn, Pandas, NumPy, Power BI, and predictive time-series forecasting.
 
 EDUCATION
 Bachelor of Science in Information Systems | King Khalid University
@@ -406,7 +454,9 @@ PROJECTS
             "full_name": "Yazeed Al-Mutairi",
             "email": "yazeed.mutairi@kku.edu.sa",
             "phone": "+966 58 444 1122",
-            "student_id": "444803399",
+            "national_id": "1103399444",
+            "gender": "male",
+            "experience_years": "No Experience / Fresh Graduate",
             "major": "Computer Engineering",
             "university": "King Khalid University",
             "gpa": "4.58 / 5.0",
@@ -415,6 +465,10 @@ PROJECTS
             "filename": "Yazeed_AlMutairi_Systems_CV.txt",
             "resume_text": """YAZEED AL-MUTAIRI
 Abha, Saudi Arabia | yazeed.mutairi@kku.edu.sa | +966 58 444 1122
+National ID: 1103399444 | Gender: Male | Experience: Fresh Graduate (0 years of experience)
+
+PROFESSIONAL SUMMARY
+Computer Engineer with background in C, C++, Linux kernel programming, systems architecture, and embedded microcontrollers.
 
 EDUCATION
 Bachelor of Science in Computer Engineering | King Khalid University
@@ -436,7 +490,9 @@ PROJECTS
             "full_name": "Lulwah Al-Subaie",
             "email": "lulwah.subaie@kku.edu.sa",
             "phone": "+966 54 888 3322",
-            "student_id": "444805544",
+            "national_id": "1105544444",
+            "gender": "female",
+            "experience_years": "1-2 Years",
             "major": "Computer Science",
             "university": "King Khalid University",
             "gpa": "4.92 / 5.0",
@@ -445,6 +501,10 @@ PROJECTS
             "filename": "Lulwah_AlSubaie_QA_CV.txt",
             "resume_text": """LULWAH AL-SUBAIE
 Abha / Riyadh, Saudi Arabia | lulwah.subaie@kku.edu.sa | +966 54 888 3322
+National ID: 1105544444 | Gender: Female | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Quality Assurance and Test Automation Engineer skilled in PyTest, Selenium, API automated testing, and CI/CD integration.
 
 EDUCATION
 Bachelor of Science in Computer Science | King Khalid University
@@ -467,7 +527,9 @@ PROJECTS
             "full_name": "Tariq Al-Amri",
             "email": "tariq.amri@kku.edu.sa",
             "phone": "+966 56 777 4433",
-            "student_id": "444804455",
+            "national_id": "1104455444",
+            "gender": "male",
+            "experience_years": "1-2 Years",
             "major": "Software Engineering",
             "university": "King Khalid University",
             "gpa": "4.69 / 5.0",
@@ -477,6 +539,10 @@ PROJECTS
             "resume_text": """TARIQ AL-AMRI
 Abha, Saudi Arabia | tariq.amri@kku.edu.sa | +966 56 777 4433
 GitHub: github.com/tariq-apps
+National ID: 1104455444 | Gender: Male | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Cross-Platform Mobile Application Developer experienced with Flutter, Dart, React, Firebase, and REST API integration.
 
 EDUCATION
 Bachelor of Science in Software Engineering | King Khalid University
@@ -498,7 +564,9 @@ PROJECTS
             "full_name": "Mona Al-Hajri",
             "email": "mona.hajri@kku.edu.sa",
             "phone": "+966 53 999 1100",
-            "student_id": "444802211",
+            "national_id": "1102211444",
+            "gender": "female",
+            "experience_years": "1-2 Years",
             "major": "Information Technology",
             "university": "King Khalid University",
             "gpa": "4.74 / 5.0",
@@ -507,6 +575,10 @@ PROJECTS
             "filename": "Mona_AlHajri_CloudAdmin_CV.txt",
             "resume_text": """MONA AL-HAJRI
 Abha, Saudi Arabia | mona.hajri@kku.edu.sa | +966 53 999 1100
+National ID: 1102211444 | Gender: Female | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Cloud Administrator and Systems Specialist with practical skills in Microsoft Azure, Linux administration, Docker, and Bash scripting.
 
 EDUCATION
 Bachelor of Science in Information Technology | King Khalid University
@@ -528,7 +600,9 @@ PROJECTS
             "full_name": "Abdulaziz Al-Ghamdi",
             "email": "abdulaziz.ghamdi@kku.edu.sa",
             "phone": "+966 55 666 8877",
-            "student_id": "444801998",
+            "national_id": "1101998444",
+            "gender": "male",
+            "experience_years": "No Experience / Fresh Graduate",
             "major": "Information Systems",
             "university": "King Khalid University",
             "gpa": "4.61 / 5.0",
@@ -537,6 +611,10 @@ PROJECTS
             "filename": "Abdulaziz_AlGhamdi_NLP_CV.txt",
             "resume_text": """ABDULAZIZ AL-GHAMDI
 Abha, Saudi Arabia | abdulaziz.ghamdi@kku.edu.sa | +966 55 666 8877
+National ID: 1101998444 | Gender: Male | Experience: Fresh Graduate (0 years of experience)
+
+PROFESSIONAL SUMMARY
+NLP enthusiast with strong skills in Python, Transformers, BERT, PyTorch, and text classification.
 
 EDUCATION
 Bachelor of Science in Information Systems | King Khalid University
@@ -558,7 +636,9 @@ PROJECTS
             "full_name": "Khaled Al-Garni",
             "email": "khaled.garni@kku.edu.sa",
             "phone": "+966 50 111 9988",
-            "student_id": "443209112",
+            "national_id": "1091124432",
+            "gender": "male",
+            "experience_years": "1-2 Years",
             "major": "Civil Engineering",
             "university": "King Khalid University",
             "gpa": "3.85 / 5.0",
@@ -567,6 +647,10 @@ PROJECTS
             "filename": "Khaled_AlGarni_CivilEng_CV.txt",
             "resume_text": """KHALED AL-GARNI
 Abha, Saudi Arabia | khaled.garni@kku.edu.sa | +966 50 111 9988
+National ID: 1091124432 | Gender: Male | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Civil Engineer specialized in structural concrete analysis, AutoCAD drafting, site surveying, and project construction supervision (Negative Control Baseline).
 
 EDUCATION
 Bachelor of Science in Civil Engineering | King Khalid University
@@ -587,7 +671,9 @@ EXPERIENCE & PROJECTS
             "full_name": "Fatima Al-Sulaiman",
             "email": "fatima.sulaiman@kku.edu.sa",
             "phone": "+966 55 222 7766",
-            "student_id": "443108552",
+            "national_id": "1085524431",
+            "gender": "female",
+            "experience_years": "1-2 Years",
             "major": "Accounting & Financial Management",
             "university": "King Khalid University",
             "gpa": "4.15 / 5.0",
@@ -596,6 +682,10 @@ EXPERIENCE & PROJECTS
             "filename": "Fatima_AlSulaiman_Accounting_CV.txt",
             "resume_text": """FATIMA AL-SULAIMAN
 Abha / Riyadh, Saudi Arabia | fatima.sulaiman@kku.edu.sa | +966 55 222 7766
+National ID: 1085524431 | Gender: Female | Experience: 1 year of experience
+
+PROFESSIONAL SUMMARY
+Accountant and Financial Auditor with expertise in general ledger accounting, corporate tax, VAT compliance, and Excel financial modeling (Negative Control Baseline).
 
 EDUCATION
 Bachelor of Science in Accounting | King Khalid University
@@ -630,20 +720,36 @@ EXPERIENCE & PROJECTS
             db.add(user)
             db.commit()
             db.refresh(user)
+        elif user.full_name != cdata["full_name"]:
+            user.full_name = cdata["full_name"]
+            db.commit()
 
         # 2. CandidateProfile
         prof = db.query(CandidateProfile).filter(CandidateProfile.user_id == user.user_id).first()
         if not prof:
             prof = CandidateProfile(
                 user_id=user.user_id,
-                student_id=cdata["student_id"],
+                national_id=cdata["national_id"],
+                gender=cdata["gender"],
                 major=cdata["major"],
                 university=cdata["university"],
                 gpa=cdata["gpa"],
                 career_level=cdata["career_level"],
+                experience_years=cdata["experience_years"],
                 profile_summary=cdata["summary"]
             )
             db.add(prof)
+            db.commit()
+            db.refresh(prof)
+        else:
+            prof.national_id = cdata["national_id"]
+            prof.gender = cdata["gender"]
+            prof.major = cdata["major"]
+            prof.university = cdata["university"]
+            prof.gpa = cdata["gpa"]
+            prof.career_level = cdata["career_level"]
+            prof.experience_years = cdata["experience_years"]
+            prof.profile_summary = cdata["summary"]
             db.commit()
             db.refresh(prof)
 
@@ -667,14 +773,24 @@ EXPERIENCE & PROJECTS
                 mime_type="text/plain",
                 storage_path=file_path,
                 file_size_kb=file_size_kb,
-                checksum=f"seed_hash_{user.user_id}_{cdata['student_id']}"
+                checksum=f"seed_hash_{user.user_id}_{cdata['national_id']}"
             )
             db.add(up_file)
             db.commit()
             db.refresh(up_file)
+        else:
+            up_file.storage_path = file_path
+            up_file.file_size_kb = file_size_kb
+            up_file.checksum = f"seed_hash_{user.user_id}_{cdata['national_id']}"
+            db.commit()
 
         # 4. Resume record
-        res = db.query(Resume).filter(Resume.candidate_id == prof.candidate_id).first()
+        res = db.query(Resume).filter(
+            Resume.candidate_id == prof.candidate_id,
+            Resume.resume_title == cdata["filename"]
+        ).first()
+        if not res:
+            res = db.query(Resume).filter(Resume.candidate_id == prof.candidate_id).first()
         if not res:
             res = Resume(
                 candidate_id=prof.candidate_id,
@@ -685,6 +801,14 @@ EXPERIENCE & PROJECTS
                 is_default=True
             )
             db.add(res)
+            db.commit()
+            db.refresh(res)
+        else:
+            res.file_id = up_file.file_id
+            res.resume_title = cdata["filename"]
+            res.raw_text = cdata["resume_text"].strip()
+            res.parsed_status = "parsed"
+            res.is_default = True
             db.commit()
             db.refresh(res)
 

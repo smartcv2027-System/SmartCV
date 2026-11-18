@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
-import { api, Resume, MatchResultDetail, Job, JobApplication } from "@/lib/api";
+import { api, Resume, MatchResultDetail, Job, JobApplication, ApplicantJobRecommendationsResponse, JobRecommendationItem } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { ScoreGauge } from "@/components/ScoreGauge";
 import { useLanguage, format, getLocalizedError } from "@/lib/i18n";
@@ -31,7 +31,9 @@ import {
   Filter,
   X,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Award,
+  Edit3
 } from "lucide-react";
 import { Pagination } from "@/components/Pagination";
 import SkillTagInput from "@/components/SkillTagInput";
@@ -44,12 +46,19 @@ export default function ApplicantPortalPage() {
   const [myResults, setMyResults] = useState<MatchResultDetail[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [activeTab, setActiveTab] = useState<"applications" | "jobs">("applications");
+  const [recommendations, setRecommendations] = useState<ApplicantJobRecommendationsResponse | null>(null);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [postApplyModalData, setPostApplyModalData] = useState<ApplicantJobRecommendationsResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<"applications" | "jobs" | "recommended">("applications");
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [applyingJobId, setApplyingJobId] = useState<number | null>(null);
   const [uploadStatus, setUploadStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit Profile Modal States
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // Upload CV Modal States (Requires CV file, no blank manual entry)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -62,11 +71,13 @@ export default function ApplicantPortalPage() {
   // Parsed / Editable Form States
   const [cvTitle, setCvTitle] = useState("");
   const [candidateName, setCandidateName] = useState("");
-  const [studentId, setStudentId] = useState("");
+  const [nationalId, setNationalId] = useState("");
+  const [gender, setGender] = useState("");
   const [university, setUniversity] = useState("");
   const [major, setMajor] = useState("");
   const [gpa, setGpa] = useState("");
   const [careerLevel, setCareerLevel] = useState("Entry Level");
+  const [experienceYears, setExperienceYears] = useState("No Experience / Fresh Graduate");
   const [summary, setSummary] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
   const [rawText, setRawText] = useState("");
@@ -92,6 +103,48 @@ export default function ApplicantPortalPage() {
     return null;
   };
 
+  const handleOpenEditProfileModal = () => {
+    setNationalId(user?.candidate_profile?.national_id || "");
+    setGender(user?.candidate_profile?.gender || "");
+    setUniversity(user?.candidate_profile?.university || "");
+    setMajor(user?.candidate_profile?.major || "");
+    setGpa(user?.candidate_profile?.gpa || "");
+    setCareerLevel(user?.candidate_profile?.career_level || "Entry Level");
+    setExperienceYears(user?.candidate_profile?.experience_years || "No Experience / Fresh Graduate");
+    setSummary(user?.candidate_profile?.profile_summary || "");
+    setIsEditProfileModalOpen(true);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    try {
+      await api.updateMyProfile({
+        national_id: nationalId,
+        gender: gender || undefined,
+        university,
+        major,
+        gpa,
+        career_level: careerLevel,
+        experience_years: experienceYears,
+        profile_summary: summary,
+      });
+      setIsEditProfileModalOpen(false);
+      setUploadStatus({
+        type: "success",
+        message: t.applicant.profileUpdateSuccess,
+      });
+      await refreshUser();
+    } catch (err: any) {
+      setUploadStatus({
+        type: "error",
+        message: getLocalizedError(err, t),
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   const handleOpenUploadModal = () => {
     setUploadModalFile(null);
     setIsParsingFile(false);
@@ -100,11 +153,13 @@ export default function ApplicantPortalPage() {
     setParseSuccess(null);
     setCvTitle("");
     setCandidateName(user?.full_name || "");
-    setStudentId(user?.candidate_profile?.student_id || "");
+    setNationalId(user?.candidate_profile?.national_id || "");
+    setGender(user?.candidate_profile?.gender || "");
     setUniversity(user?.candidate_profile?.university || "");
     setMajor(user?.candidate_profile?.major || "");
     setGpa(user?.candidate_profile?.gpa || "");
     setCareerLevel(user?.candidate_profile?.career_level || "Entry Level");
+    setExperienceYears(user?.candidate_profile?.experience_years || "No Experience / Fresh Graduate");
     setSummary(user?.candidate_profile?.profile_summary || "");
     setSkills([]);
     setRawText("");
@@ -138,11 +193,13 @@ export default function ApplicantPortalPage() {
 
       setCvTitle(parsed.suggested_title || file.name);
       setCandidateName(parsed.candidate_name || user?.full_name || "");
-      setStudentId(parsed.student_id || user?.candidate_profile?.student_id || "");
+      setNationalId(parsed.national_id || user?.candidate_profile?.national_id || "");
+      setGender(parsed.gender || user?.candidate_profile?.gender || "");
       setUniversity(parsed.university || user?.candidate_profile?.university || "");
       setMajor(parsed.major || user?.candidate_profile?.major || "");
       setGpa(parsed.gpa || user?.candidate_profile?.gpa || "");
       setCareerLevel(parsed.career_level || user?.candidate_profile?.career_level || "Entry Level");
+      setExperienceYears(parsed.experience_years || user?.candidate_profile?.experience_years || "No Experience / Fresh Graduate");
       setSummary(parsed.profile_summary || user?.candidate_profile?.profile_summary || "");
       setSkills(parsed.detected_skills || []);
       setRawText(parsed.extracted_text || "");
@@ -183,11 +240,13 @@ export default function ApplicantPortalPage() {
         checksum: checksum,
         skills: skills,
         candidate_name: candidateName,
-        student_id: studentId,
+        national_id: nationalId,
+        gender: gender || undefined,
         university: university,
         major: major,
         gpa: gpa,
         career_level: careerLevel,
+        experience_years: experienceYears,
         profile_summary: summary
       });
 
@@ -266,6 +325,19 @@ export default function ApplicantPortalPage() {
     loadData();
   }, []);
 
+  async function loadRecommendations(appliedJobId?: number): Promise<ApplicantJobRecommendationsResponse | null> {
+    setLoadingRecommendations(true);
+    try {
+      const rec = await api.getMyJobRecommendations(appliedJobId);
+      setRecommendations(rec);
+      return rec;
+    } catch {
+      return null;
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  }
+
   async function loadData() {
     try {
       const [resumesData, resultsData, jobsData, appsData] = await Promise.all([
@@ -278,6 +350,11 @@ export default function ApplicantPortalPage() {
       setMyResults(resultsData);
       setJobs(jobsData);
       setApplications(appsData);
+      if (resumesData.length > 0) {
+        loadRecommendations();
+      } else {
+        setRecommendations(null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -349,7 +426,7 @@ export default function ApplicantPortalPage() {
     }
   };
 
-  const handleApply = async (job: Job) => {
+  const handleApplyById = async (jobId: number, jobTitle: string, showRecommendationsModal: boolean = true) => {
     if (!defaultResume) {
       setUploadStatus({
         type: "error",
@@ -360,7 +437,7 @@ export default function ApplicantPortalPage() {
     }
 
     const ok = await confirm({
-      title: format(t.applicant.applyConfirmTitle, { title: job.job_title }),
+      title: format(t.applicant.applyConfirmTitle, { title: jobTitle }),
       message: format(t.applicant.applyConfirmMessage, { filename: defaultResume.resume_title || "CV" }),
       confirmText: t.applicant.applyNowBtn,
       cancelText: t.common.cancel,
@@ -369,15 +446,19 @@ export default function ApplicantPortalPage() {
 
     if (!ok) return;
 
-    setApplyingJobId(job.job_id);
+    setApplyingJobId(jobId);
     setUploadStatus(null);
     try {
-      await api.applyToJob(job.job_id);
+      await api.applyToJob(jobId);
       setUploadStatus({
         type: "success",
-        message: format(t.applicant.applySuccess, { title: job.job_title })
+        message: format(t.applicant.applySuccess, { title: jobTitle })
       });
       await loadData();
+      const rec = await loadRecommendations(jobId);
+      if (showRecommendationsModal && rec) {
+        setPostApplyModalData(rec);
+      }
       setActiveTab("applications");
     } catch (err: any) {
       setUploadStatus({
@@ -387,6 +468,10 @@ export default function ApplicantPortalPage() {
     } finally {
       setApplyingJobId(null);
     }
+  };
+
+  const handleApply = async (job: Job) => {
+    await handleApplyById(job.job_id, job.job_title, true);
   };
 
   const defaultResume = resumes.length > 0 ? resumes[0] : null;
@@ -448,6 +533,114 @@ export default function ApplicantPortalPage() {
     return filteredJobs.slice(start, start + pageSizeJobs);
   }, [filteredJobs, currentPageJobs, pageSizeJobs]);
 
+  const renderJobRecommendationCard = (item: JobRecommendationItem, isBest: boolean) => {
+    const hasApplied = item.has_applied || appliedJobIds.has(item.job_id);
+    const isApplyingThis = applyingJobId === item.job_id;
+    return (
+      <div
+        key={item.job_id}
+        className={`p-5 rounded-xl border transition-all space-y-3 ${
+          isBest
+            ? "bg-gradient-to-br from-emerald-50/90 to-teal-50/60 border-emerald-300 shadow-md"
+            : "bg-white border-slate-200 shadow-xs"
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              {isBest && (
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-emerald-600 text-white inline-flex items-center gap-1 shadow-xs">
+                  <Award className="w-3 h-3" />
+                  {t.applicant.bestMatchBadge}
+                </span>
+              )}
+              {item.is_just_applied && (
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-700 border border-sky-200">
+                  {t.applicant.justAppliedBadge}
+                </span>
+              )}
+              {hasApplied && !item.is_just_applied && (
+                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                  {t.applicant.alreadyAppliedBadge}
+                </span>
+              )}
+            </div>
+            <h4 className="text-sm font-extrabold text-slate-900">{item.job_title}</h4>
+            <div className="flex items-center gap-3 text-[11px] text-slate-500 flex-wrap">
+              {item.location && (
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="w-3 h-3 text-slate-400" />
+                  {item.location}
+                </span>
+              )}
+              {item.employment_type && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-slate-400" />
+                  {item.employment_type}
+                </span>
+              )}
+            </div>
+          </div>
+          <ScoreGauge score={item.compatibility_score} size="sm" />
+        </div>
+
+        {(item.matched_skills.length > 0 || item.missing_skills.length > 0) && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {item.matched_skills.slice(0, isBest ? 10 : 5).map((sk) => (
+              <span
+                key={`m-${sk}`}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100/80 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1"
+              >
+                <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                {sk}
+              </span>
+            ))}
+            {item.missing_skills.slice(0, isBest ? 6 : 3).map((sk) => (
+              <span
+                key={`g-${sk}`}
+                className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 inline-flex items-center gap-1"
+              >
+                <AlertCircle className="w-2.5 h-2.5 text-rose-500" />
+                {sk}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-100/80 flex-wrap">
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="font-semibold text-emerald-700 inline-flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {format(t.applicant.matchedCount, { count: item.matched_skills.length })}
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="font-semibold text-rose-600 inline-flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              {format(t.applicant.gapsCount, { count: item.missing_skills.length })}
+            </span>
+          </div>
+
+          {!hasApplied ? (
+            <button
+              type="button"
+              disabled={isApplyingThis}
+              onClick={() => handleApplyById(item.job_id, item.job_title, false)}
+              className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-60"
+            >
+              <Send className="w-3 h-3" />
+              <span>{isApplyingThis ? t.common.loading : t.applicant.applyNowBtn}</span>
+            </button>
+          ) : (
+            <span className="text-xs font-bold text-emerald-700 inline-flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {t.applicant.alreadyAppliedBadge}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8">
 
@@ -507,17 +700,50 @@ export default function ApplicantPortalPage() {
 
         {/* Profile Card */}
         <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
-              {(user?.full_name || user?.username || "ST").substring(0, 2).toUpperCase()}
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg shrink-0">
+                {(user?.full_name || user?.username || "ST").substring(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900"><bdi>{user?.full_name}</bdi></h3>
+                <p className="text-xs text-slate-500"><bdi dir="ltr">{user?.email}</bdi></p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900"><bdi>{user?.full_name}</bdi></h3>
-              <p className="text-xs text-slate-500"><bdi dir="ltr">{user?.email}</bdi></p>
-            </div>
+            <button
+              type="button"
+              onClick={handleOpenEditProfileModal}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              title={t.applicant.editProfileBtn}
+            >
+              <Edit3 className="w-3 h-3" />
+              <span>{t.applicant.editProfileBtn}</span>
+            </button>
           </div>
 
           <div className="pt-2 border-t border-slate-100 space-y-2 text-xs">
+            <div className="flex justify-between">
+              <span className="text-slate-400">{t.applicant.nationalIdLabel}</span>
+              <span className="font-bold text-slate-800">
+                <bdi dir="ltr">{user?.candidate_profile?.national_id || t.common.noData}</bdi>
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">{t.applicant.genderLabel}</span>
+              <span className="font-bold text-slate-800">
+                {user?.candidate_profile?.gender === "male"
+                  ? t.applicant.genderMale
+                  : user?.candidate_profile?.gender === "female"
+                  ? t.applicant.genderFemale
+                  : t.common.noData}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">{t.applicant.experienceYearsLabel}</span>
+              <span className="font-bold text-emerald-700">
+                {user?.candidate_profile?.experience_years || t.common.noData}
+              </span>
+            </div>
             <div className="flex justify-between">
               <span className="text-slate-400">{t.applicant.universityLabel}</span>
               <span className="font-bold text-slate-800">
@@ -678,6 +904,23 @@ export default function ApplicantPortalPage() {
             }`}>
             {jobs.length}
           </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab("recommended")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === "recommended"
+            ? "bg-emerald-600 text-white shadow-sm"
+            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+            }`}
+        >
+          <Award className="w-4 h-4" />
+          <span>{t.applicant.recommendedTab}</span>
+          {recommendations?.best_job && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${activeTab === "recommended" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
+              }`}>
+              {Math.round(recommendations.best_job.compatibility_score)}%
+            </span>
+          )}
         </button>
       </div>
 
@@ -1071,6 +1314,59 @@ export default function ApplicantPortalPage() {
         </div>
       )}
 
+      {/* Tab 3: Best Jobs for My CV (Recommendations) */}
+      {activeTab === "recommended" && (
+        <div className="p-6 rounded-2xl glass-card border border-slate-200 shadow-sm space-y-5">
+          <div>
+            <h2 className="text-base font-extrabold text-slate-900">{t.applicant.recommendedTitle}</h2>
+            <p className="text-xs text-slate-500">{t.applicant.recommendedSubtitle}</p>
+          </div>
+
+          {!defaultResume ? (
+            <div className="text-center py-12 text-xs text-slate-500 space-y-3">
+              <FileText className="w-8 h-8 text-amber-400 mx-auto" />
+              <p>{t.applicant.uploadCvForRecNotice}</p>
+              <button
+                type="button"
+                onClick={handleOpenUploadModal}
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-sm hover:bg-emerald-700 transition-all cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <UploadCloud className="w-4 h-4" />
+                <span>{t.applicant.uploadResumeBtn}</span>
+              </button>
+            </div>
+          ) : loadingRecommendations && !recommendations ? (
+            <div className="text-center py-12 text-xs text-slate-500 space-y-2">
+              <RefreshCw className="w-7 h-7 text-emerald-600 animate-spin mx-auto" />
+              <p>{t.applicant.loadingRecommendations}</p>
+            </div>
+          ) : !recommendations?.best_job ? (
+            <div className="text-center py-12 text-xs text-slate-400">
+              {t.applicant.noOpenJobsForRec}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Best Matching Job */}
+              <div className="space-y-2">
+                {renderJobRecommendationCard(recommendations.best_job, true)}
+              </div>
+
+              {/* Other Ranked Jobs */}
+              {recommendations.other_jobs.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                    {t.applicant.otherJobsHeading} ({recommendations.other_jobs.length})
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {recommendations.other_jobs.map((jobItem) => renderJobRecommendationCard(jobItem, false))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 1. Upload & Parse CV Modal (Strictly requires CV file, no blank manual entry) */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
@@ -1223,7 +1519,7 @@ export default function ApplicantPortalPage() {
                     </div>
                   </div>
 
-                  {/* Fields: GPA, Student ID, Career Level */}
+                  {/* Fields: GPA, National ID, Gender */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.gpaLabel}</label>
@@ -1236,15 +1532,31 @@ export default function ApplicantPortalPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.studentIdLabel}</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.nationalIdLabel}</label>
                       <input
                         type="text"
-                        value={studentId}
-                        onChange={(e) => setStudentId(e.target.value)}
-                        placeholder={t.applicant.studentIdPlaceholder}
+                        value={nationalId}
+                        onChange={(e) => setNationalId(e.target.value)}
+                        placeholder={t.applicant.nationalIdPlaceholder}
                         className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
                       />
                     </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.genderLabel}</label>
+                      <select
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="">{t.applicant.genderSelectPlaceholder}</option>
+                        <option value="male">{t.applicant.genderMale}</option>
+                        <option value="female">{t.applicant.genderFemale}</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Fields: Career Level & Experience Years */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.careerLevelLabel}</label>
                       <select
@@ -1257,6 +1569,20 @@ export default function ApplicantPortalPage() {
                         <option value="Senior Student">Senior Student</option>
                         <option value="Junior Level">Junior Level</option>
                         <option value="Mid Level">Mid Level</option>
+                        <option value="Senior Level">Senior Level</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.experienceYearsLabel}</label>
+                      <select
+                        value={experienceYears}
+                        onChange={(e) => setExperienceYears(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                      >
+                        <option value="No Experience / Fresh Graduate">{t.applicant.expNoExp}</option>
+                        <option value="1-2 Years">{t.applicant.exp1to2}</option>
+                        <option value="3-5 Years">{t.applicant.exp3to5}</option>
+                        <option value="5+ Years">{t.applicant.exp5plus}</option>
                       </select>
                     </div>
                   </div>
@@ -1336,6 +1662,205 @@ export default function ApplicantPortalPage() {
                   <span>{isSavingCv ? t.applicant.savingCvBtn : t.applicant.saveAndPublishCvBtn}</span>
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Edit Applicant Profile Modal */}
+      {isEditProfileModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-200 my-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
+              <div className="flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-base font-extrabold text-slate-900">{t.applicant.editProfileTitle}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+                aria-label={t.common.close}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form id="edit-profile-form" onSubmit={handleSaveProfile} className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.nationalIdLabel}</label>
+                  <input
+                    type="text"
+                    value={nationalId}
+                    onChange={(e) => setNationalId(e.target.value)}
+                    placeholder={t.applicant.nationalIdPlaceholder}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.genderLabel}</label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="">{t.applicant.genderSelectPlaceholder}</option>
+                    <option value="male">{t.applicant.genderMale}</option>
+                    <option value="female">{t.applicant.genderFemale}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.experienceYearsLabel}</label>
+                  <select
+                    value={experienceYears}
+                    onChange={(e) => setExperienceYears(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="No Experience / Fresh Graduate">{t.applicant.expNoExp}</option>
+                    <option value="1-2 Years">{t.applicant.exp1to2}</option>
+                    <option value="3-5 Years">{t.applicant.exp3to5}</option>
+                    <option value="5+ Years">{t.applicant.exp5plus}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.careerLevelLabel}</label>
+                  <select
+                    value={careerLevel}
+                    onChange={(e) => setCareerLevel(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="Fresh Graduate">Fresh Graduate</option>
+                    <option value="Entry Level">Entry Level</option>
+                    <option value="Senior Student">Senior Student</option>
+                    <option value="Junior Level">Junior Level</option>
+                    <option value="Mid Level">Mid Level</option>
+                    <option value="Senior Level">Senior Level</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.universityLabel}</label>
+                  <input
+                    type="text"
+                    value={university}
+                    onChange={(e) => setUniversity(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.majorLabel}</label>
+                  <input
+                    type="text"
+                    value={major}
+                    onChange={(e) => setMajor(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">{t.applicant.gpaLabel}</label>
+                  <input
+                    type="text"
+                    value={gpa}
+                    onChange={(e) => setGpa(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </form>
+
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 cursor-pointer"
+              >
+                {t.common.cancel}
+              </button>
+              <button
+                type="submit"
+                form="edit-profile-form"
+                disabled={isSavingProfile}
+                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-60"
+              >
+                <CheckCircle2 className={`w-4 h-4 ${isSavingProfile ? "animate-spin" : ""}`} />
+                <span>{isSavingProfile ? t.applicant.savingProfileBtn : t.applicant.saveProfileBtn}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Post-Application Immediate Job Recommendations Modal */}
+      {postApplyModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in duration-200 my-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-emerald-50 to-teal-50">
+              <div className="flex items-center gap-2.5">
+                <Award className="w-6 h-6 text-emerald-600 shrink-0" />
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">{t.applicant.postApplyModalTitle}</h3>
+                  <p className="text-[11px] text-slate-600">{t.applicant.postApplyModalSubtitle}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPostApplyModalData(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 cursor-pointer"
+                aria-label={t.common.close}
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {postApplyModalData.best_job ? (
+                <>
+                  <div className="space-y-2">
+                    {renderJobRecommendationCard(postApplyModalData.best_job, true)}
+                  </div>
+
+                  {postApplyModalData.other_jobs.length > 0 && (
+                    <div className="space-y-3">
+                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                        {t.applicant.otherJobsHeading} ({postApplyModalData.other_jobs.length})
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {postApplyModalData.other_jobs.map((jobItem) => renderJobRecommendationCard(jobItem, false))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-8 text-xs text-slate-400">
+                  {t.applicant.noOpenJobsForRec}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+              <button
+                type="button"
+                onClick={() => {
+                  setPostApplyModalData(null);
+                  setActiveTab("recommended");
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold cursor-pointer"
+              >
+                {t.applicant.recommendedTab}
+              </button>
+              <button
+                type="button"
+                onClick={() => setPostApplyModalData(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 cursor-pointer"
+              >
+                {t.common.close}
+              </button>
             </div>
           </div>
         </div>

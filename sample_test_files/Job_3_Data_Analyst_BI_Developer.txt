@@ -1,0 +1,20 @@
+Data Analyst & Business Intelligence Developer
+Location: Jeddah / Abha, Saudi Arabia (Remote Available) | Employment Type: Full-Time
+
+ROLE OVERVIEW & SUMMARY:
+Our Enterprise Data & Analytics division is looking for a Data Analyst & Business Intelligence Developer to transform raw operational data into executive dashboards, optimized database schemas, and strategic business insights.
+
+KEY RESPONSIBILITIES:
+- Write complex SQL queries and design normalized relational schemas using PostgreSQL and Database Design principles.
+- Design and publish interactive executive KPI dashboards and visual reports using Power BI, Tableau, and Data Visualization best practices.
+- Perform exploratory Data Analysis, statistical modeling, and trend forecasting using Python, Scikit-Learn, Jupyter Notebooks, and Microsoft Excel.
+- Partner with business stakeholders to gather reporting requirements and translate performance metrics into actionable recommendations.
+- Maintain versioned analytics scripts using Git / GitHub and uphold high standards of Problem Solving, Time Management, and Team Collaboration.
+
+REQUIREMENTS & QUALIFICATIONS:
+- Bachelor's degree in Information Systems, Computer Science, or Data Science.
+- Advanced proficiency in SQL, PostgreSQL, Database Design, and Excel.
+- Proven experience building interactive dashboards with Power BI, Tableau, and Data Visualization techniques.
+- Strong background in Python, Data Analysis, Scikit-Learn, and Jupyter Notebooks.
+- Excellent Problem Solving, Communication, Time Management, and Team Collaboration capabilities.
+

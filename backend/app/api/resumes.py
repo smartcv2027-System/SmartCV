@@ -10,7 +10,9 @@ from app.schemas.schemas import (
     CandidateSkillResponse,
     ResumeFileParseResponse,
     ResumeSaveParsed,
-    ResumeUpdate
+    ResumeUpdate,
+    CandidateProfileBase,
+    CandidateProfileResponse
 )
 from app.api.deps import get_current_user, require_roles
 from app.ai.parser import parse_document, extract_profile_fields
@@ -129,11 +131,13 @@ async def parse_resume_file(
     return ResumeFileParseResponse(
         suggested_title=suggested_title,
         candidate_name=candidate_name,
-        student_id=profile_fields.get("student_id"),
+        national_id=profile_fields.get("national_id"),
+        gender=profile_fields.get("gender"),
         university=profile_fields.get("university"),
         major=profile_fields.get("major"),
         gpa=profile_fields.get("gpa"),
         career_level=profile_fields.get("career_level"),
+        experience_years=profile_fields.get("experience_years"),
         profile_summary=profile_fields.get("profile_summary"),
         detected_skills=skill_names,
         extracted_text=extracted_text,
@@ -177,8 +181,12 @@ def save_parsed_resume(
         cand_profile.gpa = payload.gpa
     if payload.career_level is not None:
         cand_profile.career_level = payload.career_level
-    if payload.student_id is not None:
-        cand_profile.student_id = payload.student_id
+    if payload.national_id is not None:
+        cand_profile.national_id = payload.national_id
+    if payload.gender is not None:
+        cand_profile.gender = payload.gender
+    if payload.experience_years is not None:
+        cand_profile.experience_years = payload.experience_years
     if payload.profile_summary is not None:
         cand_profile.profile_summary = payload.profile_summary
 
@@ -251,6 +259,38 @@ def save_parsed_resume(
     db.commit()
 
     return _format_resume_response(resume, db, updated_apps_count=updated_apps_count)
+
+@router.put("/profile/me", response_model=CandidateProfileResponse)
+def update_my_candidate_profile(
+    payload: CandidateProfileBase,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.APPLICANT, UserRole.ADMIN]))
+):
+    """Updates the current applicant's profile fields directly from the Profile Card."""
+    cand_profile = db.query(CandidateProfile).filter(CandidateProfile.user_id == current_user.user_id).first()
+    if not cand_profile:
+        cand_profile = CandidateProfile(user_id=current_user.user_id)
+        db.add(cand_profile)
+        db.commit()
+        db.refresh(cand_profile)
+
+    for field in (
+        "national_id",
+        "gender",
+        "major",
+        "university",
+        "gpa",
+        "career_level",
+        "experience_years",
+        "profile_summary",
+    ):
+        val = getattr(payload, field, None)
+        if val is not None:
+            setattr(cand_profile, field, val)
+
+    db.commit()
+    db.refresh(cand_profile)
+    return cand_profile
 
 @router.get("/{resume_id}", response_model=ResumeResponse)
 def get_resume(
@@ -624,7 +664,7 @@ async def upload_resumes(
         profile_to_fill = db.query(CandidateProfile).filter(CandidateProfile.candidate_id == assigned_candidate_id).first()
         if profile_to_fill:
             for field, value in profile_fields.items():
-                if value:
+                if value and hasattr(profile_to_fill, field):
                     setattr(profile_to_fill, field, value)
 
         db.commit()
@@ -689,8 +729,12 @@ def update_resume(
             cand_profile.gpa = payload.gpa
         if payload.career_level is not None:
             cand_profile.career_level = payload.career_level
-        if payload.student_id is not None:
-            cand_profile.student_id = payload.student_id
+        if payload.national_id is not None:
+            cand_profile.national_id = payload.national_id
+        if payload.gender is not None:
+            cand_profile.gender = payload.gender
+        if payload.experience_years is not None:
+            cand_profile.experience_years = payload.experience_years
         if payload.profile_summary is not None:
             cand_profile.profile_summary = payload.profile_summary
         if payload.candidate_name and cand_profile.user and payload.candidate_name.strip():

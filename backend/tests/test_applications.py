@@ -230,3 +230,30 @@ def test_recruiter_application_status_lifecycle_and_rbac(auth_tokens):
         # Step 10: Clean up test job
         client.delete(f"/api/v1/jobs/{job_id}", headers=sarah_headers)
 
+
+def test_applicant_job_recommendations_ranking(auth_tokens):
+    """
+    Verify /matching/candidate/recommendations evaluates the applicant's active CV
+    against all open jobs, returns the highest-scoring best_job, and sorts other_jobs descending.
+    """
+    fahad_headers = {"Authorization": f"Bearer {auth_tokens['applicant_fahad']}"}
+    rec_resp = client.get("/api/v1/matching/candidate/recommendations", headers=fahad_headers)
+    assert rec_resp.status_code == 200
+    data = rec_resp.json()
+    assert data["resume_id"] is not None
+    assert data["best_job"] is not None
+
+    best_score = data["best_job"]["compatibility_score"]
+    other_scores = [j["compatibility_score"] for j in data["other_jobs"]]
+    assert all(best_score >= s for s in other_scores)
+    assert other_scores == sorted(other_scores, reverse=True)
+
+    # Verify applied_job_id flag propagation
+    target_job_id = data["best_job"]["job_id"]
+    rec_with_applied = client.get(
+        f"/api/v1/matching/candidate/recommendations?applied_job_id={target_job_id}",
+        headers=fahad_headers
+    )
+    assert rec_with_applied.status_code == 200
+    assert rec_with_applied.json()["best_job"]["is_just_applied"] is True
+

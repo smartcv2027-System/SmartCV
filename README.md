@@ -175,18 +175,18 @@ python backend/migrate_to_mysql.py
 ## Testing & Academic Evaluation
 
 ### Automated Backend Regression Suite
-Run the 72 backend unit, integration, and AI evaluation tests:
+Run the 73 backend unit, integration, and AI evaluation tests:
 ```bash
 cd backend
 .\.venv\Scripts\pytest -v
 ```
-All **72/72 tests pass (100%)** covering:
+All **73/73 tests pass (100%)** covering:
 - Authentication & JWT token validation
 - Role-based authorization & permission enforcement (RBAC)
 - Upload validation (whitelists, file replacement, duplicate detection, empty file rejection)
 - Structural ATS verification (CV and job description section validation)
-- Resume parsing, profile field extraction, and applicant-exclusive CV upload workflow
-- Job application lifecycle & applicant-exclusive matching (apply, duplicate prevention, withdrawal, 0-applicant rejection)
+- Resume parsing, profile field extraction (National ID, gender, experience), and applicant-exclusive CV upload workflow
+- Job application lifecycle, applicant-exclusive matching, and instant CV-to-jobs recommendation ranking
 - AI matching, Sentence-BERT strict mode, XAI explainability, and LaTeX generator
 - Independent human ground-truth ranking validation (Spearman's $\rho$, nDCG@5, Precision@5, and quadratic weighted Cohen's Kappa)
 - Model component ablation & weight sensitivity analysis (7 configurations & qualitative failure mode diagnostics)
@@ -197,7 +197,7 @@ Verify 100% key parity across Arabic and English dictionaries:
 cd frontend
 node scripts/verify-i18n.js
 ```
-Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 652 localized keys.
+Confirms 0 missing keys, 0 orphan keys, and 0 empty strings across all 679 localized keys.
 
 
 ---
@@ -211,7 +211,7 @@ SmartCV is production-ready for zero-cost cloud hosting ($0.00 / month forever) 
 | **Frontend Web App** | **Vercel** | 100 GB Bandwidth, Global Edge CDN | Next.js 16.3.5 App Router |
 | **AI & Backend Service** | **Render.com** | 750 Instance Hours/Mo, 512 MB RAM | FastAPI + Sentence-BERT Engine |
 | **Cloud Relational DB** | **Supabase** | 500 MB PostgreSQL, Session Pooler | 16 Relational Tables & Audit Logs |
-| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 72 tests & deploys on `git push` |
+| **Automated CI/CD** | **GitHub Actions** | Native Git-driven Continuous Delivery | Runs 73 tests & deploys on `git push` |
 
 * **1-Click Backend Deployment**: Connect your GitHub repository to [Render.com](https://render.com) using the included [`render.yaml`](file:///d:/workspace/2026_2027/FirstSemester/KKU/SmartCV/SmartCV/render.yaml) Blueprint.
 * **1-Click Frontend Deployment**: Import the `frontend` folder into [Vercel](https://vercel.com) and set `NEXT_PUBLIC_API_URL=https://<your-backend>.onrender.com/api/v1`.

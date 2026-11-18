@@ -1,0 +1,25 @@
+FAHAD ABDULLAH AL-QAHTANI
+Abha, Saudi Arabia | fahad.qahtani@kku.edu.sa | +966 55 654 3210
+National ID: 1104805544 | GitHub: github.com/fahad-qahtani
+
+PROFESSIONAL SUMMARY
+Data Analyst and Junior Python Developer with a degree in Information Systems. Experienced in writing Python scripts, designing normalized SQL and PostgreSQL databases, building interactive Power BI and Tableau dashboards, and developing foundational REST APIs using FastAPI.
+
+EDUCATION
+Bachelor of Science in Information Systems | King Khalid University, Abha, Saudi Arabia
+Graduation: May 2026 | GPA: 4.45 / 5.00
+
+TECHNICAL SKILLS
+- Programming & Databases: Python, SQL, PostgreSQL, Database Design, HTML/CSS
+- Data & Analytics: Data Analysis, Data Visualization, Power BI, Tableau, Scikit-Learn, Jupyter Notebooks, Excel
+- Web & Tools: FastAPI, REST APIs, Git / GitHub
+- Soft Skills: Problem Solving, Team Collaboration, Communication, Time Management
+
+WORK EXPERIENCE & PROJECTS
+- Junior Data & Backend Analyst Intern | Asir Analytics & Tech, Abha (2025 - 2026):
+  Wrote complex SQL queries and designed normalized relational schemas using PostgreSQL and Database Design principles.
+  Developed internal data reporting endpoints using Python, FastAPI, and REST APIs.
+  Designed interactive executive KPI dashboards and visual reports using Power BI, Tableau, and Data Visualization best practices.
+- Predictive Academic Performance Analytics (University Project):
+  Performed exploratory Data Analysis and trained predictive models using Python, Scikit-Learn, Jupyter Notebooks, and Excel.
+  Maintained versioned analytics scripts using Git / GitHub and demonstrated strong Problem Solving, Time Management, Communication, and Team Collaboration.

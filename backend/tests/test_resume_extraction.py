@@ -188,10 +188,11 @@ def test_reparse_endpoints_and_rbac(auth_tokens):
 
 
 def test_extract_profile_fields_from_resume_text():
-    """Verify university, major, GPA, and career level are extracted from resume text."""
+    """Verify university, major, GPA, national_id, experience_years, and career level are extracted from resume text."""
     text = (
         "Reema Al-Qahtani\n"
-        "Student ID: 444809769\n"
+        "National ID: 1098456123\n"
+        "3 years of experience in backend systems.\n"
         "\n"
         "SUMMARY\n"
         "Senior Information Systems student seeking an internship.\n"
@@ -205,7 +206,8 @@ def test_extract_profile_fields_from_resume_text():
     assert fields["major"] == "Information Systems"
     assert fields["gpa"] == "4.78 / 5.0"
     assert fields["career_level"] == "Senior Student"
-    assert fields["student_id"] == "444809769"
+    assert fields["national_id"] == "1098456123"
+    assert fields["experience_years"] == "3-5 Years"
     assert fields["profile_summary"] == "Senior Information Systems student seeking an internship."
 
 def test_extract_profile_fields_missing_values_are_none():

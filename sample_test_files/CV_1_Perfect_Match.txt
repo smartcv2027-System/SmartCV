@@ -1,0 +1,20 @@
+Full-Stack & AI Software Engineer — Sara Mohammed Al-Asiri
+Abha / Riyadh, Saudi Arabia | sara.alasiri@kku.edu.sa | +966 50 321 7890 | National ID: 1104801122 | GPA: 4.95 / 5.00 | Graduation: 2026
+
+PROFESSIONAL SUMMARY
+Full-Stack & AI Software Engineer with a Bachelor of Science in Computer Science, Information Systems, and Software Engineering from King Khalid University. Experienced in designing, building, and deploying intelligent enterprise web applications, asynchronous Python and FastAPI microservices, and responsive React, Next.js, and TypeScript user interfaces. Proven track record integrating Machine Learning, Natural Language Processing (NLP), and Explainable AI (XAI) models using PyTorch, Scikit-Learn, and BERT / Transformers with PostgreSQL databases and Docker containerization.
+
+EDUCATION & WORK EXPERIENCE
+- Design, develop, and maintain asynchronous backend REST APIs and microservices using Python and FastAPI.
+- Build modern, responsive, and accessible web user interfaces using React, Next.js, TypeScript, JavaScript, and HTML/CSS.
+- Architect and optimize relational database schemas, complex queries, and indexing strategies in PostgreSQL and SQL.
+- Develop and integrate Natural Language Processing (NLP) and Explainable AI (XAI) models using Machine Learning, PyTorch, Scikit-Learn, and BERT / Transformers.
+- Containerize full-stack applications using Docker and maintain automated CI/CD Pipelines with Git / GitHub version control.
+- Collaborate in Agile / Scrum engineering teams applying Software Engineering best practices, Problem Solving, Communication, and Team Collaboration.
+
+TECHNICAL SKILLS
+- Programming: Python, TypeScript, JavaScript, SQL, HTML/CSS
+- Web Frameworks: FastAPI, React, Next.js, REST APIs
+- AI & Machine Learning: Machine Learning, Natural Language Processing (NLP), Explainable AI (XAI), PyTorch, Scikit-Learn, BERT / Transformers
+- Databases & DevOps: PostgreSQL, Docker, CI/CD Pipelines, Git / GitHub, Agile / Scrum
+- Soft Skills: Problem Solving, Team Collaboration, Communication

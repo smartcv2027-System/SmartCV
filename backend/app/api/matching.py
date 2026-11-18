@@ -10,7 +10,7 @@ from app.models.models import (
 from app.schemas.schemas import (
     MatchJobRequest, JobRankingSummary, MatchResultDetail,
     MatchedSkillItem, MissingSkillItem, ExplanationDetail, 
-    ApplicantFeedbackDetail
+    ApplicantFeedbackDetail, JobRecommendationItem, ApplicantJobRecommendationsResponse
 )
 from app.api.deps import get_current_user, require_roles
 from app.ai.matcher import SmartCVMatcher, SBERTModelError
@@ -391,4 +391,113 @@ def get_my_candidate_results(
         .all()
     )
     return [_build_match_result_detail(r) for r in results]
+
+
+@router.get("/candidate/recommendations", response_model=ApplicantJobRecommendationsResponse)
+def get_my_job_recommendations(
+    applied_job_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles([UserRole.APPLICANT, UserRole.ADMIN]))
+):
+    """
+    Evaluates the applicant's active CV against all open jobs using SmartCVMatcher,
+    returning the single best-matching job and all other open jobs ranked by compatibility score.
+    """
+    from sqlalchemy.orm import joinedload
+
+    cand = current_user.candidate_profile
+    if not cand:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Candidate profile not found."
+        )
+
+    resume = (
+        db.query(Resume)
+        .options(joinedload(Resume.candidate_skills).joinedload(CandidateSkill.skill))
+        .filter(Resume.candidate_id == cand.candidate_id, Resume.is_default == True)
+        .first()
+    )
+    if not resume:
+        resume = (
+            db.query(Resume)
+            .options(joinedload(Resume.candidate_skills).joinedload(CandidateSkill.skill))
+            .filter(Resume.candidate_id == cand.candidate_id)
+            .order_by(Resume.created_at.desc())
+            .first()
+        )
+    if not resume:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Please upload and parse a CV first to see job recommendations."
+        )
+
+    open_jobs = (
+        db.query(Job)
+        .options(joinedload(Job.job_skills).joinedload(JobSkill.skill))
+        .filter(Job.status == "open")
+        .all()
+    )
+
+    applied_ids = {
+        app.job_id
+        for app in db.query(JobApplication.job_id).filter(JobApplication.candidate_id == cand.candidate_id).all()
+    }
+
+    cand_skill_names = {
+        cs.skill.skill_name.lower(): cs.skill.skill_name
+        for cs in resume.candidate_skills
+        if cs.skill and cs.skill.skill_name
+    }
+
+    matcher = SmartCVMatcher()
+    scored_items: List[JobRecommendationItem] = []
+
+    for job in open_jobs:
+        job_skill_names = [js.skill.skill_name for js in job.job_skills if js.skill and js.skill.skill_name]
+        matched_skills = [name for name in job_skill_names if name.lower() in cand_skill_names]
+        missing_skills = [name for name in job_skill_names if name.lower() not in cand_skill_names]
+
+        try:
+            match_out = matcher.match_resume_to_job(
+                resume_text=resume.raw_text,
+                job_text=job.raw_job_text,
+                matched_skills_count=len(matched_skills),
+                total_job_skills_count=len(job_skill_names)
+            )
+        except SBERTModelError as e:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"Sentence-BERT Semantic Engine Error: {str(e)}"
+            )
+
+        scored_items.append(JobRecommendationItem(
+            job_id=job.job_id,
+            job_title=job.job_title,
+            location=job.location,
+            employment_type=job.employment_type,
+            required_experience=job.required_experience,
+            compatibility_score=match_out["compatibility_score"],
+            tfidf_score=match_out["tfidf_score"],
+            bert_score=match_out["bert_score"],
+            skill_match_score=match_out["skill_overlap_ratio"],
+            recommendation_status=match_out["recommendation_status"],
+            matched_skills=matched_skills,
+            missing_skills=missing_skills,
+            has_applied=job.job_id in applied_ids,
+            is_just_applied=(applied_job_id is not None and job.job_id == applied_job_id),
+        ))
+
+    scored_items.sort(key=lambda item: item.compatibility_score, reverse=True)
+
+    best_job = scored_items[0] if scored_items else None
+    other_jobs = scored_items[1:] if len(scored_items) > 1 else []
+
+    return ApplicantJobRecommendationsResponse(
+        resume_id=resume.resume_id,
+        resume_title=resume.resume_title or "My Resume",
+        applied_job_id=applied_job_id,
+        best_job=best_job,
+        other_jobs=other_jobs,
+    )
 

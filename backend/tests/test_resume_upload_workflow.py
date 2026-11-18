@@ -2,11 +2,64 @@ import io
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
-from app.db.database import get_db
-from app.models.models import Resume, CandidateProfile
+from app.db.database import get_db, SessionLocal
+from app.models.models import User, Resume, CandidateProfile, UploadedFile, JobApplication
 from app.core.security import create_access_token
+from app.core.file_utils import delete_file_from_disk
 
 client = TestClient(app)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def restore_seeded_applicant_after_module():
+    yield
+    db = SessionLocal()
+    try:
+        user2 = db.query(User).filter(User.user_id == 2).first()
+        if user2:
+            user2.full_name = "Reema Yahya Alfaifi"
+        prof = db.query(CandidateProfile).filter(CandidateProfile.user_id == 2).first()
+        if prof:
+            prof.national_id = "1109769444"
+            prof.gender = "female"
+            prof.major = "Information Systems"
+            prof.university = "King Khalid University"
+            prof.gpa = "4.78 / 5.0"
+            prof.career_level = "Senior Student / Fresh Graduate"
+            prof.experience_years = "1-2 Years"
+            seeded_res = (
+                db.query(Resume)
+                .filter(Resume.candidate_id == prof.candidate_id, Resume.resume_title == "Reema_Alfaifi_CV.txt")
+                .first()
+            )
+            extra_resumes = (
+                db.query(Resume)
+                .filter(Resume.candidate_id == prof.candidate_id, Resume.resume_title != "Reema_Alfaifi_CV.txt")
+                .all()
+            )
+            if seeded_res:
+                extra_ids = [r.resume_id for r in extra_resumes]
+                if extra_ids:
+                    db.query(JobApplication).filter(JobApplication.resume_id.in_(extra_ids)).update(
+                        {JobApplication.resume_id: seeded_res.resume_id}, synchronize_session=False
+                    )
+                seeded_res.is_default = True
+            for r in extra_resumes:
+                db.delete(r)
+            db.commit()
+
+        # Remove temporary test UploadedFile records and disk files for user 2
+        extra_files = (
+            db.query(UploadedFile)
+            .filter(UploadedFile.uploaded_by == 2, UploadedFile.file_name != "Reema_Alfaifi_CV.txt")
+            .all()
+        )
+        for uf in extra_files:
+            delete_file_from_disk(uf.storage_path)
+            db.delete(uf)
+        db.commit()
+    finally:
+        db.close()
 
 @pytest.fixture
 def auth_tokens():
@@ -33,7 +86,7 @@ def second_applicant_token():
 
 SAMPLE_CV_TEXT = (
     "Reema Al-Qahtani\n"
-    "Student ID: 442109999\n"
+    "National ID: 1098456123\n"
     "PROFESSIONAL SUMMARY\n"
     "Aspiring software engineer skilled in full-stack Python development and cloud systems.\n"
     "EDUCATION\n"
@@ -83,11 +136,13 @@ def test_save_parsed_resume(auth_tokens):
         "checksum": parsed_data["checksum"],
         "skills": ["Python", "FastAPI", "React", "Docker", "Machine Learning"],
         "candidate_name": "Reema Al-Qahtani",
-        "student_id": "442109999",
+        "national_id": "1098456123",
+        "gender": "female",
         "university": "King Khalid University",
         "major": "Computer Science",
         "gpa": "4.85",
         "career_level": "Entry Level",
+        "experience_years": "1-2 Years",
         "profile_summary": "Custom reviewed summary for Fahad."
     }
 
@@ -103,6 +158,14 @@ def test_save_parsed_resume(auth_tokens):
     skill_names = [s["skill_name"] for s in saved_data["skills"]]
     assert "Machine Learning" in skill_names
     assert "FastAPI" in skill_names
+
+    # Verify profile fields persisted via /profile/me and /auth/me
+    me_resp = client.get("/api/v1/auth/me", headers=fahad_headers)
+    assert me_resp.status_code == 200
+    prof = me_resp.json()["candidate_profile"]
+    assert prof["national_id"] == "1098456123"
+    assert prof["gender"] == "female"
+    assert prof["experience_years"] == "1-2 Years"
 
 def test_save_parsed_resume_recruiter_forbidden(auth_tokens):
     """Only applicants (or admins) can save resumes via /save-parsed."""

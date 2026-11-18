@@ -4,11 +4,13 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
 # --- Candidate Profile Schemas ---
 class CandidateProfileBase(BaseModel):
-    student_id: Optional[str] = None
+    national_id: Optional[str] = None
+    gender: Optional[str] = None
     major: Optional[str] = None
     university: Optional[str] = None
     gpa: Optional[str] = None
     career_level: Optional[str] = None
+    experience_years: Optional[str] = None
     profile_summary: Optional[str] = None
 
 class CandidateProfileCreate(CandidateProfileBase):
@@ -223,11 +225,13 @@ class ResumeResponse(BaseModel):
 class ResumeFileParseResponse(BaseModel):
     suggested_title: str
     candidate_name: Optional[str] = None
-    student_id: Optional[str] = None
+    national_id: Optional[str] = None
+    gender: Optional[str] = None
     university: Optional[str] = None
     major: Optional[str] = None
     gpa: Optional[str] = None
     career_level: Optional[str] = None
+    experience_years: Optional[str] = None
     profile_summary: Optional[str] = None
     detected_skills: List[str] = []
     extracted_text: str
@@ -245,11 +249,13 @@ class ResumeSaveParsed(BaseModel):
     checksum: Optional[str] = None
     skills: List[str] = []
     candidate_name: Optional[str] = None
-    student_id: Optional[str] = None
+    national_id: Optional[str] = None
+    gender: Optional[str] = None
     university: Optional[str] = None
     major: Optional[str] = None
     gpa: Optional[str] = None
     career_level: Optional[str] = None
+    experience_years: Optional[str] = None
     profile_summary: Optional[str] = None
 
 class ResumeUpdate(BaseModel):
@@ -257,11 +263,13 @@ class ResumeUpdate(BaseModel):
     raw_text: Optional[str] = None
     skills: Optional[List[str]] = None
     candidate_name: Optional[str] = None
-    student_id: Optional[str] = None
+    national_id: Optional[str] = None
+    gender: Optional[str] = None
     university: Optional[str] = None
     major: Optional[str] = None
     gpa: Optional[str] = None
     career_level: Optional[str] = None
+    experience_years: Optional[str] = None
     profile_summary: Optional[str] = None
 
 # --- Matching & Explainability Schemas ---
@@ -362,3 +370,29 @@ class ModelEvaluationReport(BaseModel):
     thesis_chapter_text: Optional[str] = None
     latex_table: Optional[str] = None
     generated_at: datetime
+
+
+# --- Applicant Job Recommendation Schemas ---
+class JobRecommendationItem(BaseModel):
+    job_id: int
+    job_title: str
+    location: Optional[str] = None
+    employment_type: Optional[str] = None
+    required_experience: Optional[str] = None
+    compatibility_score: float
+    tfidf_score: float
+    bert_score: float
+    skill_match_score: float
+    recommendation_status: str
+    matched_skills: List[str] = []
+    missing_skills: List[str] = []
+    has_applied: bool = False
+    is_just_applied: bool = False
+
+
+class ApplicantJobRecommendationsResponse(BaseModel):
+    resume_id: int
+    resume_title: str
+    applied_job_id: Optional[int] = None
+    best_job: Optional[JobRecommendationItem] = None
+    other_jobs: List[JobRecommendationItem] = []
