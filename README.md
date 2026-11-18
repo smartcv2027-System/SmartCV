@@ -135,6 +135,13 @@ The database comes pre-populated with realistic, graduation-project-grade demons
   5. *Data Engineer & Business Intelligence Specialist* (SQL, PostgreSQL, Power BI — Riyadh, Financial Sector)
   6. *Full-Stack Software Engineer* (Java, React, PostgreSQL, Docker — Al-Khobar, Hybrid)
 - **Candidate Job Applications & On-Demand AI Screening**: Realistic multi-track applicant submissions pre-seeded across postings, ready for instantaneous Sentence-BERT semantic scoring, TF-IDF lexical matching, verbatim evidence quotes, and XAI summaries linked strictly to submitted job applications.
+  1. *Junior AI & Machine Learning Engineer* (Python, PyTorch, NLP — Riyadh, Hybrid)
+  2. *Junior Front-End Web Developer* (Next.js 14, React, TypeScript — Riyadh, Remote Available)
+  3. *Cloud & DevOps Infrastructure Engineer* (Docker, Kubernetes, AWS — Abha, On-site / Hybrid)
+  4. *Cybersecurity SOC Analyst & Defense Specialist* (Wireshark, Linux, NCA Controls — Riyadh, NCA Partner)
+  5. *Data Engineer & Business Intelligence Specialist* (SQL, PostgreSQL, Power BI — Riyadh, Financial Sector)
+  6. *Full-Stack Software Engineer* (Java, React, PostgreSQL, Docker — Al-Khobar, Hybrid)
+- **Candidate Job Applications & On-Demand AI Screening**: Realistic multi-track applicant submissions pre-seeded across postings, ready for instantaneous Sentence-BERT semantic scoring, TF-IDF lexical matching, verbatim evidence quotes, and XAI summaries linked strictly to submitted job applications.
 - **Physical Resume Files**: Stored in `backend/uploads/` so downloading or viewing resumes in the browser always succeeds without 404s.
 
 ---
